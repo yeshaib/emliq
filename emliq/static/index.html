@@ -1,0 +1,2351 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>emliq</title>
+<link rel="icon" href="/logo.svg" type="image/svg+xml">
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #f3f3f1; --surface: #fcfcfb; --surface-2: #f6f6f4; --line: #e6e5e0; --line-strong: #d6d5cf;
+    --text: #0b0b0b; --text-2: #52514e; --muted: #7c7b76;
+    --accent: #2a78d6; --accent-ink: #1c5cab; --accent-soft: #e7f0fc; --track: #e3ecf8;
+    --danger: #c43636; --danger-soft: #fbeceb; --warning: #fab219;
+    --series-1: #2a78d6; --series-2: #eb6834; --series-3: #1baf7a; --series-4: #eda100; --series-5: #e87ba4;
+    --neutral: #b9b8b2;
+    --shadow: 0 1px 2px rgba(20, 20, 18, .04), 0 1px 1px rgba(20, 20, 18, .03);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      color-scheme: dark;
+      --bg: #111110; --surface: #1a1a19; --surface-2: #212120; --line: #2c2c2a; --line-strong: #3a3a37;
+      --text: #ffffff; --text-2: #c3c2b7; --muted: #8f8e87;
+      --accent: #3987e5; --accent-ink: #86b6ef; --accent-soft: #1b2a3e; --track: #1f2c3d;
+      --danger: #e66767; --danger-soft: #3a2120;
+      --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70; --series-4: #c98500; --series-5: #d55181;
+      --neutral: #5d5c57;
+      --shadow: none;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #111110; --surface: #1a1a19; --surface-2: #212120; --line: #2c2c2a; --line-strong: #3a3a37;
+    --text: #ffffff; --text-2: #c3c2b7; --muted: #8f8e87;
+    --accent: #3987e5; --accent-ink: #86b6ef; --accent-soft: #1b2a3e; --track: #1f2c3d;
+    --danger: #e66767; --danger-soft: #3a2120;
+    --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70; --series-4: #c98500; --series-5: #d55181;
+    --neutral: #5d5c57;
+    --shadow: none;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: var(--bg); color: var(--text); font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; -webkit-font-smoothing: antialiased; }
+  button { font: inherit; color: inherit; }
+  svg.i { width: 16px; height: 16px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* global loading bar */
+  #loadbar { position: fixed; inset: 0 0 auto 0; height: 2px; z-index: 50; overflow: hidden; opacity: 0; transition: opacity .2s; pointer-events: none; }
+  #loadbar.on { opacity: 1; }
+  #loadbar::before { content: ""; position: absolute; inset: 0; width: 40%; background: var(--accent); border-radius: 2px; animation: slide 1.1s ease-in-out infinite; }
+  @keyframes slide { from { transform: translateX(-100%); } to { transform: translateX(260%); } }
+
+  /* layout */
+  .app { display: grid; grid-template-columns: 232px minmax(0, 1fr) auto; min-height: 100vh; }
+  aside { background: var(--surface); border-right: 1px solid var(--line); padding: 18px 12px; display: flex; flex-direction: column; gap: 22px; position: sticky; top: 0; height: 100vh; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+  @media (max-height: 760px) and (min-width: 861px) {
+    aside { gap: 14px; padding-top: 14px; }
+    nav button { padding: 6px 10px; }
+    .nav-label { padding-bottom: 4px; }
+  }
+  .brand { text-decoration: none; color: inherit; cursor: pointer; }
+  .brand:hover .logo { filter: brightness(1.08); }
+  .brand { display: flex; align-items: center; gap: 10px; padding: 0 8px; font-weight: 700; font-size: 17px; letter-spacing: -.02em; }
+  .logo { width: 28px; height: 28px; flex: none; }
+  .brand .iq { color: var(--accent); margin-left: -10px; }
+  .nav-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; padding: 0 10px 6px; }
+  nav { display: flex; flex-direction: column; gap: 2px; }
+  nav button { display: flex; align-items: center; gap: 10px; border: 0; background: none; padding: 8px 10px; border-radius: 8px; cursor: pointer; color: var(--text-2); text-align: left; }
+  nav button:hover { background: var(--surface-2); color: var(--text); }
+  nav button.on { background: var(--accent-soft); color: var(--accent-ink); font-weight: 600; }
+  .side-foot { margin-top: auto; padding: 12px 10px 0; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .side-foot a { color: var(--accent-ink); text-decoration: none; }
+  .side-foot a:hover { text-decoration: underline; }
+  .side-foot b { color: var(--text-2); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  main { padding: 22px 28px 64px; display: flex; flex-direction: column; gap: 18px; min-width: 0; width: 100%; }
+  .top { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .top h1 { font-size: 22px; letter-spacing: -.02em; margin: 0; }
+  .top .sub { color: var(--muted); font-size: 13px; }
+  .spacer { flex: 1; }
+
+  .seg { display: inline-flex; background: var(--surface-2); border: 1px solid var(--line); border-radius: 9px; padding: 2px; }
+  .seg button { border: 0; background: none; padding: 5px 12px; border-radius: 7px; cursor: pointer; color: var(--text-2); font-size: 13px; }
+  .seg button.on { background: var(--surface); color: var(--text); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+
+  .btn { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line-strong); background: var(--surface); padding: 7px 12px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; white-space: nowrap; }
+  .btn:hover:not(:disabled) { background: var(--surface-2); }
+  a.btn { text-decoration: none; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.primary:hover:not(:disabled) { background: var(--accent-ink); border-color: var(--accent-ink); }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .btn[hidden], .bulkbar [hidden] { display: none; }
+  .btn.sm { padding: 4px 9px; font-size: 12px; border-radius: 6px; }
+  .btn.danger { color: var(--danger); }
+  .btn.danger:hover:not(:disabled) { background: var(--danger-soft); }
+
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); }
+  .card-h { display: flex; align-items: center; gap: 10px; padding: 14px 16px 0; }
+  .card-h h2 { font-size: 14px; margin: 0; font-weight: 600; white-space: nowrap; }
+  .card-h .hint { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+
+  /* sync progress */
+  .sync { padding: 14px 16px; display: grid; grid-template-columns: auto 1fr auto; gap: 6px 14px; align-items: center; }
+  .sync[hidden] { display: none; }
+  .sync .spin { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--track); border-top-color: var(--accent); animation: spin .8s linear infinite; grid-row: span 2; }
+  .sync.paused .spin { border-top-color: var(--warning); animation-duration: 2s; }
+  .sync.failed .spin { animation: none; border-color: var(--danger); }
+  .sync.done .spin { animation: none; border-color: var(--series-3); }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .sync .title { font-weight: 600; }
+  .sync .meta { color: var(--text-2); font-size: 13px; text-align: right; font-variant-numeric: tabular-nums; }
+  .bar { grid-column: 2 / 4; height: 8px; border-radius: 4px; background: var(--track); overflow: hidden; position: relative; }
+  .bar > i { position: absolute; inset: 0 auto 0 0; background: var(--accent); border-radius: 4px; transition: width .6s ease; }
+  .bar.indet > i { width: 30% !important; animation: slide 1.3s ease-in-out infinite; }
+  .sync.paused .bar > i { background: var(--warning); }
+
+  /* right-hand insights panel */
+  .insights { width: 380px; position: sticky; top: 0; height: 100vh; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin;
+    border-left: 1px solid var(--line); background: var(--bg); padding: 16px 16px 72px; display: flex; flex-direction: column; gap: 14px; }
+  .insights-h { display: flex; align-items: center; gap: 8px; position: sticky; top: -16px; margin: -16px -16px 0; padding: 14px 16px 10px; background: var(--bg); z-index: 3; }
+  .insights-h h2 { margin: 0; font-size: 15px; }
+  .insights .kpis { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .insights .kpi { padding: 12px; }
+  .insights .kpi .value { font-size: 22px; }
+  .insights .kpi .foot { font-size: 11px; }
+  .insights .charts { grid-template-columns: 1fr; gap: 12px; }
+  .insights .hbar { grid-template-columns: minmax(0, 110px) minmax(0, 1fr) 46px; }
+  .insights .cols { height: 140px; }
+  .insights-backdrop { display: none; }
+  /* collapsed: a slim rail stays visible instead of the panel vanishing */
+  .insights { transition: width .2s ease; }
+  .insights-rail { display: none; }
+  body.insights-closed .insights { width: 52px; padding: 12px 6px; overflow: hidden; }
+  body.insights-closed .insights > :not(.insights-rail) { display: none; }
+  body.insights-closed .insights-rail { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .insights-rail .ib { width: 34px; height: 34px; }
+  .insights-rail .rail-label { writing-mode: vertical-rl; transform: rotate(180deg); font-size: 12px; font-weight: 600; color: var(--muted);
+    letter-spacing: .08em; text-transform: uppercase; padding: 6px 0; cursor: pointer; border: 0; background: none; }
+  .insights-rail .rail-label:hover { color: var(--accent-ink); }
+  .insights-rail hr { width: 24px; border: 0; border-top: 1px solid var(--line); margin: 2px 0; }
+  body.no-insights .insights, body.no-insights #insightsBtn { display: none; }
+  #insightsBtn.on { background: var(--accent-soft); color: var(--accent-ink); border-color: transparent; }
+  @media (max-width: 1180px) {
+    .app { grid-template-columns: 232px minmax(0, 1fr); }
+    .insights { position: fixed; right: 0; top: 0; bottom: 0; z-index: 45; box-shadow: -12px 0 40px rgba(0,0,0,.18); width: min(400px, 92vw); }
+    /* drawer mode: when closed, just a small tab on the right edge */
+    body.insights-closed .insights { width: 40px; top: 35%; bottom: auto; height: auto; padding: 8px 4px; border-radius: 12px 0 0 12px;
+      border: 1px solid var(--line-strong); border-right: 0; box-shadow: -4px 4px 14px rgba(0,0,0,.12); background: var(--surface); }
+    body.insights-closed .insights-rail .rail-tile, body.insights-closed .insights-rail hr { display: none; }
+    body.insights-closed:not(.no-insights) main { padding-right: 52px; }
+    body:not(.insights-closed):not(.no-insights) .insights-backdrop { display: block; position: fixed; inset: 0; z-index: 44; background: rgba(10,10,10,.25); }
+  }
+  @media (max-width: 860px) { .app { grid-template-columns: 1fr; } }
+
+  /* tables adapt to their own width (not just the window's), and never clip */
+  .table-card { container-type: inline-size; }
+  #content, #logContent { overflow-x: auto; }
+  @container (max-width: 1120px) {
+    .table-card .hide-md { display: none; }
+    .table-card .name, .table-card .subline { max-width: 260px; }
+  }
+  @container (max-width: 860px) {
+    .table-card .hide-sm { display: none; }
+    .table-card .name, .table-card .subline { max-width: 180px; }
+  }
+  @container (max-width: 560px) {
+    .table-card td.sel, .table-card th.sel { display: none; }  /* the avatar circle selects on small screens */
+    .table-card .actions { flex-wrap: wrap; width: 92px; margin-left: auto; }
+    .table-card .actions .ib.ghost { display: none; }
+    .table-card .name, .table-card .subline { max-width: 104px; }
+    .table-card th, .table-card td { padding-left: 6px; padding-right: 6px; }
+    .table-card th { letter-spacing: 0; font-size: 10px; }
+    .table-card .who { gap: 8px; }
+    .table-card .card-h select { flex: 1 1 140px; min-width: 0; max-width: 100%; }
+    .table-card .card-h .filters { flex: 1 1 100%; display: flex; min-width: 0; }
+    .table-card .card-h .filters select { flex: 1 1 0; }
+    .table-card .card-h .search { flex: 1 1 100%; }
+    .table-card .card-h .search input { width: 100%; }
+  }
+  main { padding-bottom: 80px; }
+  .version { transition: transform .25s ease, opacity .25s ease; }
+  .version.away { transform: translateY(80px); opacity: 0; pointer-events: none; }
+
+  /* help / guide */
+  .help { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 16px; align-items: start; }
+  .help-toc { position: sticky; top: 16px; padding: 12px; display: flex; flex-direction: column; gap: 10px; max-height: calc(100vh - 32px); overflow-y: auto; }
+  .help-toc .search input { width: 100%; }
+  .help-toc a { display: block; padding: 5px 8px; border-radius: 6px; color: var(--text-2); text-decoration: none; font-size: 13px; }
+  .help-toc a.sub { padding-left: 20px; font-size: 12px; }
+  .help-toc a:hover, .help-toc a.on { background: var(--accent-soft); color: var(--accent-ink); }
+  .help-body { padding: 8px 28px 28px; font-size: 15px; line-height: 1.6; max-width: 860px; }
+  .help-body h1 { font-size: 24px; margin: 18px 0 6px; letter-spacing: -.02em; }
+  .help-body h2 { font-size: 19px; margin: 30px 0 8px; padding-top: 18px; border-top: 1px solid var(--line); scroll-margin-top: 16px; }
+  .help-body h3 { font-size: 15px; margin: 20px 0 6px; scroll-margin-top: 16px; }
+  .help-body p, .help-body li { color: var(--text-2); }
+  .help-body p { margin: 0 0 12px; }
+  .help-body ul, .help-body ol { margin: 0 0 12px; padding-left: 22px; }
+  .help-body li { margin: 4px 0; }
+  .help-body b { color: var(--text); }
+  .help-body code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px; }
+  .help-body a { color: var(--accent-ink); }
+  .help-body blockquote { margin: 0 0 14px; padding: 10px 14px; border-radius: 10px; background: var(--accent-soft); color: var(--accent-ink); }
+  .help-body blockquote p { margin: 0; color: inherit; }
+  .help-body table { margin: 0 0 16px; font-size: 14px; border: 1px solid var(--line); border-radius: 10px; border-collapse: separate; border-spacing: 0; width: 100%; overflow: hidden; }
+  .help-body td { overflow-wrap: anywhere; }
+  .help-body th, .help-body td { padding: 8px 12px; vertical-align: top; }
+  .help-body th { text-transform: none; letter-spacing: 0; font-size: 13px; color: var(--text); }
+  .help-body mark { background: color-mix(in srgb, var(--warning) 45%, transparent); color: inherit; border-radius: 3px; }
+  .help-body .hidden-by-search { display: none; }
+  .help-empty { color: var(--muted); padding: 24px 0; }
+  .helplink { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--line-strong); color: var(--muted);
+    font-size: 11px; font-weight: 700; text-decoration: none; cursor: pointer; background: var(--surface); vertical-align: 1px; margin-left: 6px; }
+  .helplink:hover { color: var(--accent-ink); border-color: var(--accent); }
+  @media (max-width: 900px) { .help { grid-template-columns: 1fr; } .help-toc { position: static; max-height: 260px; } .help-body { padding: 4px 16px 20px; } }
+
+  /* customizable dashboard */
+  .linkbtn { border: 0; background: none; color: var(--muted); font: inherit; font-size: 12px; cursor: pointer; padding: 2px 4px; display: inline-flex; align-items: center; gap: 6px; }
+  .linkbtn:hover { color: var(--accent-ink); }
+  .linkbtn svg { width: 14px; height: 14px; }
+  .kpis[hidden], .charts > [hidden], .charts[hidden], nav button[hidden] { display: none !important; }
+  .charts > .span-all { grid-column: 1 / -1; }
+  .tile-x { border: 0; background: none; color: var(--muted); cursor: pointer; width: 24px; height: 24px; border-radius: 6px; display: grid; place-items: center; margin: -4px -6px -4px 2px; opacity: 0; transition: opacity .15s; font-size: 13px; }
+  .card:hover .tile-x, .tile-x:focus-visible { opacity: 1; }
+  .tile-x:hover { background: var(--surface-2); color: var(--text); }
+  @media (hover: none) { .tile-x { opacity: .7; } }
+  .kpis { position: relative; }
+  .kpis .tile-x { position: absolute; top: -10px; right: -6px; background: var(--surface); border: 1px solid var(--line); }
+  .kpis:hover .tile-x { opacity: 1; }
+  .layout-group { margin-bottom: 14px; }
+  .layout-group h4 { margin: 0 0 6px; font-size: 13px; color: var(--text); }
+  .layout-group label { display: flex; align-items: center; gap: 10px; padding: 5px 0; font-size: 14px; color: var(--text-2); cursor: pointer; }
+  .layout-group label.locked { color: var(--muted); cursor: default; }
+
+  /* search / ask bar */
+  .omni { display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--line-strong); border-radius: 12px; padding: 5px 5px 5px 12px; box-shadow: var(--shadow); }
+  .omni:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .omni > svg { color: var(--muted); }
+  .omni input { flex: 1; min-width: 0; border: 0; outline: 0; background: none; font: inherit; font-size: 14px; color: var(--text); padding: 6px 0; }
+  .omni .btn { padding: 6px 12px; }
+  @media (max-width: 560px) { .omni .search-label { display: none; } }
+
+  /* auth banner */
+  .banner { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 12px; background: var(--accent-soft); color: var(--accent-ink); font-size: 14px; flex-wrap: wrap; }
+  .banner[hidden] { display: none; }
+  .banner b { color: var(--text); }
+  .banner .spacer { flex: 1; }
+
+  /* ask AI */
+  .ask-card { display: flex; flex-direction: column; min-height: 420px; }
+  .thread { flex: 1; display: flex; flex-direction: column; gap: 14px; padding: 18px; }
+  .turn-q { align-self: flex-end; max-width: 80%; background: var(--accent); color: #fff; padding: 9px 14px; border-radius: 14px 14px 4px 14px; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .turn-a { align-self: flex-start; max-width: 92%; background: var(--surface-2); border: 1px solid var(--line); padding: 12px 14px; border-radius: 14px 14px 14px 4px; }
+  .turn-a p { margin: 0 0 8px; }
+  .turn-a p:last-child { margin-bottom: 0; }
+  .turn-a ul { margin: 0 0 8px; padding-left: 18px; }
+  .turn-a li { margin: 3px 0; }
+  .turn-a.err { background: var(--danger-soft); border-color: transparent; color: var(--danger); }
+  .turn-acts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .turn-meta { margin-top: 8px; font-size: 11px; color: var(--muted); }
+  .thinking { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); }
+  .thinking .spin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--track); border-top-color: var(--accent); animation: spin .8s linear infinite; }
+  .suggestions { display: flex; gap: 8px; flex-wrap: wrap; padding: 0 18px 12px; }
+  .suggestions button { border: 1px solid var(--line-strong); background: var(--surface); border-radius: 999px; padding: 6px 12px; font-size: 13px; cursor: pointer; color: var(--text-2); }
+  .suggestions button:hover { border-color: var(--accent); color: var(--accent-ink); }
+  .ask-form { display: flex; gap: 8px; padding: 12px 18px 6px; border-top: 1px solid var(--line); }
+  .ask-form textarea { flex: 1; resize: none; font: inherit; font-size: 14px; padding: 9px 12px; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--surface); color: var(--text); }
+  .ask-form textarea:focus { outline: 0; border-color: var(--accent); }
+  .ask-note { padding: 0 18px 14px; font-size: 12px; color: var(--muted); }
+  .ask-empty { color: var(--muted); text-align: center; padding: 40px 12px 8px; }
+  .ask-empty h3 { color: var(--text); margin: 0 0 6px; font-size: 17px; }
+  .filter-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 4px 6px 4px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-ink); }
+  .filter-chip button { border: 0; background: none; color: inherit; cursor: pointer; font-size: 13px; padding: 0 4px; }
+  .filter-chip[hidden] { display: none; }
+
+  /* floating version badge -> What's new */
+  .version { position: fixed; right: 16px; bottom: 16px; z-index: 35; display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 11px; border-radius: 999px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--text-2);
+    font: 600 12px/1 inherit; cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,.08); }
+  .version:hover { color: var(--accent-ink); border-color: var(--accent); }
+  .version .new { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+  .releases { display: flex; flex-direction: column; gap: 16px; }
+  .release h4 { margin: 0 0 6px; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+  .release h4 .when { font-weight: 400; color: var(--muted); font-size: 12px; }
+  .release h4 .cur { font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 10px; background: var(--accent-soft); color: var(--accent-ink); }
+  .release ul { margin: 0; padding-left: 18px; color: var(--text-2); font-size: 13px; }
+  .release li { margin: 3px 0; }
+  @media (max-width: 860px) { .version { bottom: 12px; right: 12px; } .bulk-on .version { display: none; } }
+
+  /* floating job dock: always visible while syncing/categorizing */
+  .jobs { position: fixed; right: 16px; bottom: 58px; z-index: 40; width: min(400px, calc(100vw - 32px)); display: flex; flex-direction: column; gap: 10px; pointer-events: none; transition: bottom .2s; }
+  .jobs > * { pointer-events: auto; }
+  .bulk-on .jobs { bottom: 100px; }
+  .jobs .sync { grid-template-columns: auto 1fr auto; box-shadow: 0 10px 30px rgba(0,0,0,.14); border-color: var(--line-strong); }
+  .jobs .sync .spin { grid-row: span 1; }
+  .jobs .sync .meta { grid-column: 1 / 4; text-align: left; font-size: 12px; }
+  .jobs .sync .bar { grid-column: 1 / 4; }
+  .jobs .sync .btn[hidden] { display: none; }
+  .sync.stopped .spin { animation: none; border-color: var(--warning); }
+
+  /* KPIs */
+  .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+  .kpi { padding: 16px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  .kpi .label { font-size: 13px; color: var(--text-2); display: flex; align-items: center; gap: 6px; }
+  .kpi .label svg { color: var(--muted); }
+  .kpi .value { font-size: 30px; font-weight: 650; letter-spacing: -.02em; line-height: 1.15; }
+  .kpi .foot { font-size: 12px; color: var(--muted); }
+  .meter { height: 6px; border-radius: 3px; background: var(--track); overflow: hidden; margin-top: 6px; }
+  .meter > i { display: block; height: 100%; background: var(--accent); border-radius: 3px; }
+
+  /* charts */
+  .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .chart { padding-bottom: 14px; min-width: 0; }
+  .chart .body { padding: 12px 16px 0; }
+  .hbar { display: grid; grid-template-columns: minmax(0, 130px) minmax(0, 1fr) 54px; gap: 10px; align-items: center; padding: 4px 0; cursor: pointer; border-radius: 6px; }
+  .hbar:hover .name { color: var(--accent-ink); }
+  .hbar .name { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-2); }
+  .hbar .track { height: 12px; }
+  .hbar .fill { height: 12px; background: var(--series-1); border-radius: 0 4px 4px 0; min-width: 3px; }
+  .hbar:hover .fill { filter: brightness(1.08); }
+  .hbar .v { font-size: 12px; text-align: right; color: var(--text-2); font-variant-numeric: tabular-nums; }
+
+  .cols { display: flex; align-items: flex-end; gap: 4px; height: 168px; border-bottom: 1px solid var(--line-strong); position: relative; }
+  .cols .gl { position: absolute; left: 0; right: 0; border-top: 1px dashed var(--line); pointer-events: none; z-index: 2; }
+  .cols .gl span { position: absolute; right: 0; top: -16px; font-size: 11px; color: var(--muted); background: var(--surface); padding-left: 4px; }
+  .col { flex: 1; min-width: 0; height: 100%; display: flex; align-items: flex-end; cursor: pointer; position: relative; z-index: 1; }
+  .col > i { display: block; width: 100%; max-width: 30px; margin: 0 auto; background: var(--series-1); border-radius: 4px 4px 0 0; min-height: 2px; }
+  .col:hover > i { filter: brightness(1.1); }
+  .xlabels { display: flex; gap: 4px; margin-top: 6px; }
+  .xlabels span { flex: 1; min-width: 0; text-align: center; font-size: 11px; color: var(--muted); white-space: nowrap; overflow: visible; }
+
+  .stack { display: flex; gap: 2px; height: 14px; margin: 6px 0 14px; }
+  .stack > i { height: 100%; cursor: pointer; min-width: 3px; }
+  .stack > i:first-child { border-radius: 4px 0 0 4px; }
+  .stack > i:last-child { border-radius: 0 4px 4px 0; }
+  .stack > i:only-child { border-radius: 4px; }
+  .legend { display: flex; flex-direction: column; gap: 2px; }
+  .legend button { display: grid; grid-template-columns: 10px 1fr auto 46px; gap: 10px; align-items: center; border: 0; background: none; padding: 5px 6px; border-radius: 6px; cursor: pointer; text-align: left; font-size: 13px; color: var(--text-2); }
+  .legend button:hover { background: var(--surface-2); color: var(--text); }
+  .legend .sw { width: 10px; height: 10px; border-radius: 3px; }
+  .legend .n { font-variant-numeric: tabular-nums; color: var(--text); }
+  .legend .pct { font-variant-numeric: tabular-nums; color: var(--muted); text-align: right; }
+
+  /* table */
+  .table-card .card-h { padding-bottom: 12px; flex-wrap: wrap; }
+  .search { display: flex; align-items: center; gap: 8px; border: 1px solid var(--line-strong); border-radius: 8px; padding: 0 10px; background: var(--surface); color: var(--muted); }
+  .search input { border: 0; outline: 0; background: none; padding: 7px 0; font: inherit; font-size: 13px; color: var(--text); width: 220px; }
+  select { font: inherit; font-size: 13px; padding: 6px 8px; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--surface); color: var(--text); }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: 10px 16px; text-align: left; border-top: 1px solid var(--line); vertical-align: middle; }
+  th { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; background: var(--surface-2); }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tr.bundle { cursor: pointer; }
+  tr.bundle:hover td { background: var(--surface-2); }
+  tr.bundle.open td { background: var(--accent-soft); }
+  .who { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .avatar { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700; color: #fff; flex: none; }
+  .who-t { min-width: 0; }
+  .name { font-weight: 600; max-width: 380px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .subline { font-size: 12px; color: var(--muted); max-width: 380px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tag { display: inline-block; font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 10px; background: var(--accent-soft); color: var(--accent-ink); margin-left: 6px; vertical-align: 1px; }
+  .count { display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
+  .spark { width: 70px; height: 6px; border-radius: 3px; background: var(--track); overflow: hidden; }
+  .spark > i { display: block; height: 100%; background: var(--series-1); border-radius: 3px; }
+  .actions { display: flex; gap: 4px; justify-content: flex-end; }
+  .ib { width: 30px; height: 30px; display: inline-grid; place-items: center; border: 1px solid var(--line-strong); background: var(--surface); border-radius: 7px; cursor: pointer; color: var(--text-2); padding: 0; flex: none; }
+  .ib:hover:not(:disabled) { background: var(--accent-soft); color: var(--accent-ink); border-color: transparent; }
+  .ib.danger:hover:not(:disabled) { background: var(--danger-soft); color: var(--danger); }
+  .ib:disabled { opacity: .4; cursor: default; }
+  .ib.ghost { border-color: transparent; background: none; cursor: default; }
+  td.nowrap { white-space: nowrap; }
+  tr.preview td { background: var(--surface-2); padding: 0; }
+  .preview-list { max-height: 340px; overflow: auto; padding: 6px 16px 12px 56px; }
+  .preview-list.senders { padding-left: 16px; max-height: 460px; }
+  .cat-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 6px 0 10px; font-size: 13px; color: var(--text-2); }
+  .srow { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto auto 18px; gap: 10px; align-items: center; padding: 7px 8px; border-radius: 8px; cursor: pointer; }
+  .srow:hover { background: var(--surface); }
+  .srow .name { font-size: 13px; max-width: none; }
+  .srow .subline { max-width: none; }
+  .avatar.sm { width: 26px; height: 26px; font-size: 11px; }
+  .scount { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-variant-numeric: tabular-nums; justify-content: flex-end; min-width: 60px; }
+  .chev-s svg { width: 14px; height: 14px; color: var(--muted); transition: transform .15s; }
+  .srow[aria-expanded="true"] .chev-s svg { transform: rotate(180deg); }
+  .srow-msgs { padding: 0 8px 8px 44px; }
+  .srow-msgs[hidden] { display: none; }
+  .prow > span:first-child { white-space: nowrap; }
+  .prow { display: grid; grid-template-columns: 110px minmax(0, 1fr) 70px; gap: 12px; padding: 6px 0; font-size: 13px; border-bottom: 1px dashed var(--line); }
+  .prow a { color: inherit; text-decoration: none; }
+  .prow a:hover { color: var(--accent-ink); text-decoration: underline; }
+  .prow .u { font-weight: 600; }
+  .muted { color: var(--muted); }
+  .empty { padding: 48px 16px; text-align: center; color: var(--muted); border-top: 1px solid var(--line); }
+  .skel { height: 12px; border-radius: 6px; background: linear-gradient(90deg, var(--surface-2), var(--line), var(--surface-2)); background-size: 200% 100%; animation: shimmer 1.2s linear infinite; }
+  @keyframes shimmer { to { background-position: -200% 0; } }
+
+  /* selection + bulk bar */
+  td.sel, th.sel { width: 44px; padding-right: 0; }
+  td.sel { cursor: pointer; }
+  /* round selector: the avatar doubles as a checkbox */
+  .sel-btn { position: relative; border: 0; padding: 0; cursor: pointer; transition: box-shadow .12s; }
+  .sel-btn.plain { background: var(--surface-2); color: var(--muted); box-shadow: inset 0 0 0 1px var(--line-strong); }
+  .sel-btn.plain svg { width: 14px; height: 14px; }
+  .sel-btn .ck { position: absolute; inset: 0; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: #fff; opacity: 0; transform: scale(.6); transition: opacity .12s, transform .12s; }
+  .sel-btn .ck svg { width: 16px; height: 16px; stroke: #fff; stroke-width: 3; }
+  .sel-btn:hover, .sel-btn:focus-visible { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--accent); outline: none; }
+  .selecting tr.bundle:not(.selected) .sel-btn { box-shadow: 0 0 0 2px var(--surface), 0 0 0 3px var(--line-strong); }
+  tr.bundle.selected .sel-btn .ck { opacity: 1; transform: scale(1); }
+  .selecting tr.bundle { cursor: copy; }
+  .ib.chev svg { transition: transform .15s; }
+  tr.bundle.open .ib.chev svg { transform: rotate(180deg); }
+  .bulkbar .hint { font-size: 12px; opacity: .65; white-space: nowrap; }
+  input.cb { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; margin: 0; vertical-align: middle; }
+  tr.bundle.selected td { background: var(--accent-soft); }
+  .bulkbar { position: sticky; bottom: 16px; z-index: 20; align-self: center; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center;
+    background: var(--text); color: var(--bg); padding: 8px 8px 8px 16px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.18); max-width: 100%; }
+  .bulkbar[hidden] { display: none; }
+  .bulkbar .what { font-size: 13px; margin-right: 6px; white-space: nowrap; }
+  .bulkbar .what b { font-weight: 650; }
+  .bulkbar .btn { background: transparent; color: var(--bg); border-color: color-mix(in srgb, var(--bg) 30%, transparent); }
+  .bulkbar .btn:hover:not(:disabled) { background: color-mix(in srgb, var(--bg) 14%, transparent); }
+  .bulkbar .btn.danger { background: var(--danger); border-color: var(--danger); color: #fff; }
+  .bulkbar .btn.danger:hover:not(:disabled) { background: var(--danger); filter: brightness(1.1); }
+  .bulkbar .x { border: 0; background: none; color: var(--bg); opacity: .7; cursor: pointer; padding: 6px; font-size: 16px; line-height: 1; }
+  .bulkbar .x:hover { opacity: 1; }
+
+  dialog { border: 1px solid var(--line); border-radius: 14px; padding: 0; background: var(--surface); color: var(--text); width: min(560px, calc(100vw - 32px)); box-shadow: 0 20px 50px rgba(0,0,0,.25); }
+  dialog::backdrop { background: rgba(10,10,10,.35); }
+  .dlg-b p { margin: 0 0 10px; color: var(--text-2); font-size: 14px; }
+  .dlg-b p:first-child { color: var(--text); }
+  .dlg-list { margin: 0 0 10px; padding-left: 18px; color: var(--text-2); font-size: 13px; }
+  .dlg-list li { margin: 2px 0; overflow-wrap: anywhere; }
+  .dlg-link { display: block; font-size: 12px; color: var(--muted); overflow-wrap: anywhere; margin-top: 4px; }
+  .btn.primary.danger-fill { background: var(--danger); border-color: var(--danger); }
+  .btn.primary.danger-fill:hover:not(:disabled) { background: var(--danger); filter: brightness(1.08); }
+  .dlg-h { padding: 18px 20px 6px; }
+  .dlg-h h3 { margin: 0 0 4px; font-size: 17px; }
+  .dlg-b { padding: 8px 20px; max-height: 50vh; overflow: auto; }
+  .dlg-f { padding: 14px 20px 18px; display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0 4px; }
+  .chip { font-size: 12px; padding: 3px 9px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--line); }
+  .chip b { font-weight: 650; }
+  .res { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); font-size: 13px; }
+  .res .who-n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .res .st { font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .res .st.ok { color: var(--series-3); }
+  .res .st.bad { color: var(--danger); }
+  .res a { font-size: 12px; color: var(--accent-ink); }
+
+  /* pagination */
+  .pager { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-top: 1px solid var(--line); flex-wrap: wrap; font-size: 13px; color: var(--text-2); }
+  .pager .pages { display: flex; gap: 4px; margin-left: auto; flex-wrap: wrap; }
+  .pager .pg { min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid var(--line-strong); background: var(--surface); border-radius: 7px; cursor: pointer; font-size: 13px; font-variant-numeric: tabular-nums; }
+  .pager .pg:hover:not(:disabled) { background: var(--surface-2); }
+  .pager .pg.on { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  .pager .pg:disabled { opacity: .4; cursor: default; }
+  .pager .gap { align-self: center; color: var(--muted); padding: 0 2px; }
+  .perpage { display: inline-flex; align-items: center; gap: 8px; }
+
+  /* AI */
+  .ai-tags { display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap; }
+  .ai-tag { font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--line); color: var(--text-2); white-space: nowrap; }
+  .ai-tag.unsubscribe { background: var(--danger-soft); border-color: transparent; color: var(--danger); }
+  .ai-tag.archive { background: var(--accent-soft); border-color: transparent; color: var(--accent-ink); }
+  .ai-cta { display: flex; flex-direction: column; gap: 10px; padding: 12px 16px 16px; }
+  .ai-cta p { margin: 0; color: var(--text-2); font-size: 13px; }
+  .ai-cta .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .ai-more { margin-top: 10px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12px; }
+  .ai-more:empty { display: none; }
+  .suggest { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+  .suggest button { display: grid; grid-template-columns: 1fr auto; gap: 10px; border: 1px solid var(--line); background: var(--surface-2); border-radius: 8px; padding: 8px 10px; cursor: pointer; text-align: left; font-size: 13px; }
+  .suggest button:hover { border-color: var(--accent); }
+  .suggest .n { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .filters { display: inline-flex; gap: 8px; align-items: center; }
+  .filters[hidden] { display: none; }
+
+  /* activity */
+  .page[hidden] { display: none !important; }
+  .page { display: flex; flex-direction: column; gap: 18px; }
+  .charts.two { grid-template-columns: 1fr 1fr; }
+  .line-wrap { position: relative; }
+  .line-wrap svg { width: 100%; height: 190px; display: block; overflow: visible; }
+  .line-legend { display: flex; gap: 16px; font-size: 12px; color: var(--text-2); margin-bottom: 8px; }
+  .line-legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .line-legend i { width: 14px; height: 3px; border-radius: 2px; display: inline-block; }
+  .log-act { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; white-space: nowrap; }
+  .log-act .dot { width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center; background: var(--surface-2); color: var(--text-2); }
+  .log-act .dot.bad { background: var(--danger-soft); color: var(--danger); }
+  .log-act .dot.good { background: var(--accent-soft); color: var(--accent-ink); }
+
+  /* settings */
+  .settings { display: grid; gap: 14px; max-width: 760px; }
+  .set-card { padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; }
+  .set-card h2 { margin: 0; font-size: 15px; }
+  .set-card p { margin: 0; color: var(--text-2); font-size: 13px; }
+  .set-card a { color: var(--accent-ink); }
+  .status { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; }
+  .status .d { width: 8px; height: 8px; border-radius: 50%; background: var(--neutral); }
+  .status.ok .d { background: var(--series-3); }
+  .keyrow { display: flex; gap: 8px; flex-wrap: wrap; }
+  .keyrow input { flex: 1; min-width: 220px; font: inherit; font-size: 13px; padding: 8px 10px; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--surface); color: var(--text); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .err { color: var(--danger); font-size: 13px; }
+  .models { display: flex; flex-direction: column; gap: 8px; }
+  .model-row { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; padding: 10px 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface-2); }
+  .model-row b { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
+  .model-row .muted { font-size: 12px; }
+  .inline { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .facts { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; font-size: 13px; }
+  .facts dt { color: var(--muted); }
+  .facts dd { margin: 0; overflow-wrap: anywhere; }
+
+  #tip { position: fixed; z-index: 60; pointer-events: none; background: var(--text); color: var(--bg); font-size: 12px; padding: 6px 9px; border-radius: 6px; opacity: 0; transition: opacity .1s; white-space: nowrap; }
+  #tip.on { opacity: 1; }
+  #tip b { font-weight: 600; }
+  #toast { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%) translateY(8px); background: var(--text); color: var(--bg); padding: 10px 16px; border-radius: 10px; opacity: 0; transition: .2s; pointer-events: none; max-width: 90vw; z-index: 70; }
+  #toast.show { opacity: 1; transform: translateX(-50%); }
+
+  @media (max-width: 1060px) { .hide-md { display: none; } }
+  @media (max-width: 1100px) { .charts, .charts.two { grid-template-columns: 1fr; } }
+  @media (max-width: 860px) {
+    .app { grid-template-columns: 1fr; }
+    aside { position: static; height: auto; flex-direction: row; align-items: center; padding: 10px 16px; gap: 12px; overflow-x: auto; overflow-y: hidden; border-right: 0; border-bottom: 1px solid var(--line); }
+    .nav-label, .side-foot { display: none; }
+    nav { flex-direction: row; }
+    nav button { white-space: nowrap; padding: 6px 10px; }
+    main { padding: 16px 16px 48px; }
+    .kpis { grid-template-columns: 1fr 1fr; }
+    .charts { grid-template-columns: 1fr; }
+    .hide-sm, .hide-md { display: none; }
+    .actions { gap: 2px; }
+    .ib { width: 28px; height: 28px; }
+    .name, .subline { max-width: 150px; }
+    .search input { width: 140px; }
+    th, td { padding: 9px 10px; }
+    .preview-list { padding-left: 16px; }
+    .prow { grid-template-columns: 80px minmax(0, 1fr); }
+    .prow > :last-child { display: none; }
+  }
+</style>
+</head>
+<body>
+<div id="loadbar"></div>
+<div class="app">
+  <aside>
+    <a class="brand" href="/" id="homeLink" aria-label="emliq home"><img class="logo" src="/logo.svg" width="28" height="28" alt="">eml<span class="iq">iq</span></a>
+    <div>
+      <div class="nav-label">Group by</div>
+      <nav id="views"></nav>
+    </div>
+    <div>
+      <div class="nav-label">Insights</div>
+      <nav id="pages"></nav>
+    </div>
+    <div class="side-foot"><b id="account">Not synced yet</b><span id="lastSync"></span><span id="sideAuth"></span></div>
+  </aside>
+
+  <main>
+    <div class="top">
+      <div>
+        <h1 id="pageTitle">Inbox cleanup</h1>
+        <div class="sub" id="subtitle">Bundle, archive and unsubscribe in bulk</div>
+      </div>
+      <div class="spacer"></div>
+      <div class="seg" id="scopes"></div>
+      <button class="btn" id="unreadBtn" title="Load every unread message in your mailbox, not just recent ones">
+        <svg class="i" viewBox="0 0 24 24"><path d="M12 4v11m0 0l-4-4m4 4l4-4M5 20h14"/></svg>Load all unread</button>
+      <button class="btn" id="insightsBtn" type="button" aria-controls="insights" aria-expanded="true">
+        <svg class="i" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16M18 8h-1M18 11h-1"/></svg>Insights</button>
+      <button class="btn" id="settingsBtn" aria-label="Settings" title="Settings">
+        <svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>Settings</button>
+      <button class="btn primary" id="syncBtn">
+        <svg class="i" viewBox="0 0 24 24"><path d="M20 12a8 8 0 01-14.3 4.9M4 12a8 8 0 0114.3-4.9M18 3v4h-4M6 21v-4h4"/></svg>Sync</button>
+    </div>
+
+
+    <form class="omni" id="omni" autocomplete="off">
+      <svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg>
+      <input id="omniInput" placeholder="Search senders and subjects, or ask a question…" aria-label="Search or ask">
+      <button class="btn" type="submit"><span class="search-label">Search</span></button>
+      <button class="btn primary" type="button" id="omniAsk"><svg class="i" viewBox="0 0 24 24"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/></svg>Ask AI</button>
+    </form>
+    <div class="banner" id="authBanner" hidden>
+      <span id="authBannerText"><b>You're signed out of Gmail.</b> Sign in to sync and clean up your mail.</span>
+      <span class="spacer"></span>
+      <a class="btn primary" href="/auth/start" id="authBannerBtn">Sign in with Google</a>
+    </div>
+
+    <div class="page" id="dashPage">
+    <section class="card table-card">
+      <div class="card-h">
+        <h2 id="tableTitle">Senders</h2>
+        <span class="hint" id="summary"></span>
+        <span class="spacer"></span>
+        <label class="search"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg>
+          <input type="search" id="search" placeholder="Filter by sender, subject, list"></label>
+        <span class="filter-chip" id="emailsChip" hidden><span id="emailsChipText"></span><button type="button" id="emailsChipX" aria-label="Clear filter">✕</button></span>
+        <span class="filters" id="aiFilters" hidden>
+          <select id="aiAction" aria-label="AI suggestion">
+            <option value="">Any suggestion</option>
+            <option value="unsubscribe">Suggested: unsubscribe</option>
+            <option value="archive">Suggested: archive</option>
+            <option value="keep">Suggested: keep</option>
+          </select>
+          <select id="aiCategory" aria-label="AI category"><option value="">Any category</option></select>
+        </span>
+        <select id="sort" aria-label="Sort">
+          <option value="">Default order</option>
+          <option value="count">Most messages</option>
+          <option value="size">Largest</option>
+          <option value="unread">Most unread</option>
+          <option value="latest">Most recent</option>
+        </select>
+      </div>
+      <div id="content"></div>
+      <div id="pager"></div>
+    </section>
+
+    <div class="bulkbar" id="bulkbar" hidden>
+      <span class="what" id="bulkWhat"></span>
+      <button class="btn sm" data-bulk="read">Mark read</button>
+      <button class="btn sm" data-bulk="archive">Archive</button>
+      <button class="btn sm" data-bulk="unsubscribe">Unsubscribe</button>
+      <button class="btn sm" data-bulk="block">Block</button>
+      <button class="btn sm danger" data-bulk="trash">Trash</button>
+      <button class="x" id="bulkClear" aria-label="Clear selection">✕</button>
+    </div>
+    </div>
+
+    <div class="page" id="askPage" hidden>
+      <section class="card ask-card">
+        <div class="thread" id="askThread"></div>
+        <div class="suggestions" id="askSuggest"></div>
+        <form class="ask-form" id="askForm">
+          <textarea id="askInput" rows="2" placeholder="Ask about your mailbox… (Enter to send, Shift+Enter for a new line)"></textarea>
+          <button class="btn primary" type="submit" id="askSend">Ask</button>
+        </form>
+        <div class="ask-note" id="askNote"></div>
+      </section>
+    </div>
+
+    <div class="page" id="helpPage" hidden>
+      <div class="help">
+        <nav class="help-toc card" aria-label="Guide contents">
+          <label class="search"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg>
+            <input type="search" id="helpSearch" placeholder="Search the guide"></label>
+          <div id="helpToc"></div>
+        </nav>
+        <article class="card help-body" id="helpBody"></article>
+      </div>
+    </div>
+
+    <div class="page" id="searchPage" hidden>
+      <section class="card">
+        <div class="card-h" style="padding-bottom:10px"><h2>Senders</h2><span class="hint" id="srSendersHint"></span><span class="spacer"></span>
+          <button class="btn sm" id="srAllSenders">Open in sender list →</button></div>
+        <div id="srSenders" class="preview-list senders" style="max-height:none"></div>
+      </section>
+      <section class="card">
+        <div class="card-h" style="padding-bottom:10px"><h2>Messages</h2><span class="hint" id="srMsgHint"></span><span class="spacer"></span>
+          <button class="btn sm" id="srAsk">✦ Ask AI about this</button></div>
+        <div id="srMessages" class="preview-list" style="max-height:none"></div>
+      </section>
+    </div>
+
+    <div class="page" id="settingsPage" hidden>
+      <div class="settings">
+        <section class="card set-card" id="accountCard">
+          <h2>Gmail account</h2>
+          <div id="accountStatus"></div>
+          <div class="inline" id="accountActions"></div>
+          <div id="clientSetup" hidden>
+            <p>To sign in, emliq needs your Google OAuth client file (type <b>Desktop app</b>) from
+              <a href="https://console.cloud.google.com/auth/clients" target="_blank" rel="noopener noreferrer">Google Cloud Console</a>. See the README for the steps.</p>
+            <div class="inline"><input type="file" id="clientFile" accept="application/json,.json"></div>
+          </div>
+          <div class="err" id="accountErr"></div>
+        </section>
+        <section class="card set-card">
+          <h2>AI provider</h2>
+          <p>Which model sorts your senders into categories.</p>
+          <div class="seg" id="providerSeg">
+            <button data-provider="claude">Claude (Anthropic API)</button>
+            <button data-provider="ollama">Local model (Ollama)</button>
+          </div>
+          <p id="providerNote"></p>
+        </section>
+        <section class="card set-card" id="ollamaCard">
+          <h2>Local model (Ollama)</h2>
+          <div id="ollamaStatus"></div>
+          <div class="inline" id="ollamaPick"></div>
+          <section class="card sync" id="pullCard" hidden>
+            <div class="spin"></div>
+            <div class="title" id="pullTitle">Downloading</div>
+            <div class="meta" id="pullMeta"></div>
+            <div class="bar" id="pullBar"><i></i></div>
+          </section>
+          <p><b>Download a model</b>. Models come from Ollama's library and are stored by Ollama, not emliq.</p>
+          <div class="models" id="ollamaModels"></div>
+          <div class="err" id="ollamaErr"></div>
+        </section>
+        <section class="card set-card" id="claudeCard">
+          <h2>Anthropic API key</h2>
+          <p>Used only for <b>AI categories</b>: Claude sorts your senders and suggests what to keep, archive or unsubscribe from.
+            Get a key at <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer">console.anthropic.com</a>.
+            It's saved on this computer in your emliq data folder (readable only by you) and never shown again in full.</p>
+          <div id="keyStatus"></div>
+          <form class="keyrow" id="keyForm" autocomplete="off">
+            <input type="password" id="keyInput" placeholder="sk-ant-…" autocomplete="off" spellcheck="false" aria-label="Anthropic API key">
+            <button class="btn primary" type="submit" id="keySave">Save &amp; test</button>
+            <button class="btn danger" type="button" id="keyRemove" hidden>Remove</button>
+          </form>
+          <div class="err" id="keyErr"></div>
+        </section>
+        <section class="card set-card">
+          <h2>Dashboard and menu</h2>
+          <p id="layoutSummary">Choose which dashboard tiles and left-menu groupings you see.</p>
+          <div class="inline"><button class="btn" type="button" id="customizeBtn2">Customize…</button></div>
+        </section>
+        <section class="card set-card">
+          <h2>What it costs</h2>
+          <p id="costText">Loading…</p>
+        </section>
+        <section class="card set-card">
+          <h2>About this install</h2>
+          <dl class="facts" id="facts"></dl>
+        </section>
+      </div>
+    </div>
+
+    <div class="page" id="activityPage" hidden>
+      <section class="kpis" id="actKpis"></section>
+      <section class="charts two">
+        <div class="card chart">
+          <div class="card-h"><h2>Mailbox over time</h2><span class="spacer"></span><span class="hint">After each sync or cleanup</span></div>
+          <div class="body" id="chartHistory"></div>
+        </div>
+        <div class="card chart">
+          <div class="card-h"><h2>Cleaned per day</h2><span class="spacer"></span><span class="hint">Messages trashed, archived or read · 30 days</span></div>
+          <div class="body" id="chartDaily"></div>
+        </div>
+      </section>
+      <section class="card table-card">
+        <div class="card-h"><h2>Activity log</h2><span class="hint" id="logSummary"></span></div>
+        <div id="logContent"></div>
+        <div id="logPager"></div>
+      </section>
+    </div>
+  </main>
+
+  <aside class="insights" id="insights" aria-label="Insights">
+    <div class="insights-rail" id="insightsRail"></div>
+    <div class="insights-h">
+      <h2>Insights</h2>
+      <span class="spacer"></span>
+      <button class="linkbtn" id="customizeBtn" type="button"></button>
+      <button class="ib" id="insightsClose" type="button" aria-label="Collapse insights" title="Collapse">
+        <svg class="i" viewBox="0 0 24 24"><path d="M13 6l6 6-6 6M5 6l6 6-6 6"/></svg></button>
+    </div>
+    <section class="kpis" id="kpis" data-tile="summary"></section>
+
+    <section class="charts" id="charts">
+      <div class="card chart" data-tile="senders">
+        <div class="card-h"><h2>Top senders</h2><span class="spacer"></span><span class="hint">Messages · click to open</span></div>
+        <div class="body" id="chartSenders"></div>
+      </div>
+      <div class="card chart" data-tile="years">
+        <div class="card-h"><h2>Mail by year</h2><span class="spacer"></span><span class="hint">Messages</span></div>
+        <div class="body" id="chartYears"></div>
+      </div>
+      <div class="card chart" id="aiChartCard" data-tile="ai">
+        <div class="card-h"><h2>AI categories</h2><span class="spacer"></span><span class="hint" id="aiHint">Claude Opus 5.5</span></div>
+        <div id="chartAi"></div>
+      </div>
+      <div class="card chart" data-tile="gmail">
+        <div class="card-h"><h2>Gmail categories</h2><span class="spacer"></span><span class="hint">Share of messages</span></div>
+        <div class="body" id="chartCats"></div>
+      </div>
+    </section>
+  </aside>
+</div>
+<div class="insights-backdrop" id="insightsBackdrop"></div>
+<dialog id="dlg"><div class="dlg-h"><h3 id="dlgTitle"></h3><div class="muted" id="dlgSub"></div></div><div class="dlg-b" id="dlgBody"></div><div class="dlg-f" id="dlgFoot"></div></dialog>
+<button class="version" id="versionBtn" hidden aria-label="What's new"></button>
+<div class="jobs" id="jobs" aria-live="polite">
+  <section class="card sync" id="aiCard" hidden>
+    <div class="spin"></div>
+    <div class="title" id="aiTitle">Categorizing senders</div>
+    <button class="btn sm" id="aiStop">Stop</button>
+    <div class="meta" id="aiMeta"></div>
+    <div class="bar" id="aiBar"><i></i></div>
+  </section>
+  <section class="card sync" id="syncCard" hidden>
+    <div class="spin"></div>
+    <div class="title" id="syncTitle">Syncing</div>
+    <div class="meta" id="syncMeta"></div>
+    <div class="bar" id="syncBar"><i></i></div>
+  </section>
+</div>
+<div id="tip"></div>
+<div id="toast"></div>
+
+<script>
+const ICON = {
+  sender: '<circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0114 0"/>',
+  domain: '<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.5 2.6 2.5 14.4 0 17M12 3.5c-2.5 2.6-2.5 14.4 0 17"/>',
+  list: '<path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/>',
+  subject: '<path d="M5 6h14M5 12h10M5 18h6"/>',
+  category: '<path d="M4 7l2-3h12l2 3v11a2 2 0 01-2 2H6a2 2 0 01-2-2z"/><path d="M4 7h16M9 11h6"/>',
+  year: '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>',
+  size: '<path d="M4 18V6M9 18v-7M14 18V9M19 18v-4"/>',
+  ai: '<path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>',
+  activity: '<path d="M3 12h4l3-8 4 16 3-8h4"/>',
+  chev: '<path d="M6 9l6 6 6-6"/>',
+  check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  help: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 015 .5c0 1.7-2.5 2-2.5 3.5M12 17h.01"/>',
+  gear: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/>',
+  sync: '<path d="M20 12a8 8 0 01-14.3 4.9M4 12a8 8 0 0114.3-4.9M18 3v4h-4M6 21v-4h4"/>',
+  mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M4 7l8 6 8-6"/>',
+  dot: '<circle cx="12" cy="12" r="4"/>',
+  inbox: '<path d="M4 13l2.5-7h11L20 13v5a2 2 0 01-2 2H6a2 2 0 01-2-2z"/><path d="M4 13h5l1 2h4l1-2h5"/>',
+  read: '<path d="M4 10l8-6 8 6v9a1 1 0 01-1 1H5a1 1 0 01-1-1z"/><path d="M4 10l8 5 8-5"/>',
+  archive: '<rect x="3" y="4" width="18" height="5" rx="1"/><path d="M5 9v10a1 1 0 001 1h12a1 1 0 001-1V9M10 13h4"/>',
+  trash: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 002 2h6a2 2 0 002-2l1-12M9 7V4h6v3"/>',
+  unsub: '<path d="M18 8a6 6 0 00-9.3-5M6 8c0 7-3 9-3 9h13M10.3 21a1.9 1.9 0 003.4 0M3 3l18 18"/>',
+  block: '<circle cx="12" cy="12" r="8.5"/><path d="M6 6l12 12"/>',
+  disk: '<ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/>',
+};
+const VIEWS = [
+  ["sender", "Senders"], ["domain", "Domains"], ["list", "Mailing lists"], ["subject", "Subjects"],
+  ["category", "Gmail categories"], ["ai", "AI categories"], ["year", "By year"], ["size", "By size"],
+];
+const AI_CATEGORIES = ["Newsletters", "Shopping & deals", "Orders & receipts", "Finance & banking", "Travel",
+  "Social media", "Jobs & career", "Account & security", "News & media", "Services & utilities", "Personal", "Work", "Other"];
+const AI_VIEWS = new Set(["sender", "list", "domain"]);
+const PER_PAGE = [15, 30, 50];
+function stored(key, fallback) { try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; } }
+function store(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} }
+const SCOPES = [["inbox", "Inbox"], ["unread", "Unread"], ["all", "All mail"]];
+const BLOCKABLE = new Set(["sender", "domain", "list", "subject"]);
+// Category color follows the entity, never its rank (validated palette slots 1-5; "other" is neutral).
+const CAT_COLOR = { primary: "--series-1", promotions: "--series-2", social: "--series-3", updates: "--series-4", forums: "--series-5", other: "--neutral" };
+const CAT_ORDER = ["primary", "promotions", "social", "updates", "forums", "other"];
+const state = {
+  page: "dash", view: "sender", scope: "unread", q: "", sort: "", open: null, rows: [], selected: new Map(),
+  pageNum: 1, perPage: PER_PAGE.includes(stored("perPage", 15)) ? stored("perPage", 15) : 15, total: 0,
+  aiAction: "", aiCategory: "", logPage: 1, lastSel: null, emails: null, emailsTitle: "", chat: [], searchQ: "",
+};
+
+const $ = (id) => document.getElementById(id);
+function el(tag, props = {}, ...children) {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(props)) {
+    if (k === "class") n.className = v;
+    else if (k === "style") n.setAttribute("style", v);
+    else if (k.startsWith("on")) n.addEventListener(k.slice(2), v);
+    else if (v !== undefined && v !== null && v !== false) n.setAttribute(k, v);
+  }
+  for (const c of children.flat()) if (c !== null && c !== undefined) n.append(c instanceof Node ? c : String(c));
+  return n;
+}
+function icon(name) {
+  const s = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  s.setAttribute("viewBox", "0 0 24 24"); s.setAttribute("class", "i"); s.innerHTML = ICON[name];
+  return s;
+}
+const fmtNum = (n) => (n || 0).toLocaleString();
+const fmtCompact = (n) => new Intl.NumberFormat(undefined, { notation: "compact", maximumFractionDigits: 1 }).format(n || 0);
+function fmtBytes(b) {
+  b = b || 0;
+  if (!b) return "0 KB";
+  if (b >= 1e9) return (b / 1e9).toFixed(1) + " GB";
+  if (b >= 1e6) return (b / 1e6).toFixed(1) + " MB";
+  return Math.max(1, Math.round(b / 1e3)) + " KB";
+}
+const fmtDate = (ms) => ms ? new Date(ms).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }) : "";
+const cap = (s) => s ? s[0].toUpperCase() + s.slice(1) : s;
+const pct = (a, b) => b ? Math.round((a / b) * 100) : 0;
+const pctLabel = (a, b) => (a > 0 && pct(a, b) === 0 ? "<1" : pct(a, b)) + "%";
+
+function toast(msg) {
+  const t = $("toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(toast.timer); toast.timer = setTimeout(() => t.classList.remove("show"), 4000);
+}
+
+// Tooltip: one element, text only.
+const tip = $("tip");
+function attachTip(node, lines) {
+  node.addEventListener("mousemove", (e) => {
+    tip.replaceChildren(...lines.map((l, i) => i === 0 ? el("b", {}, l) : el("div", {}, l)));
+    tip.classList.add("on");
+    const x = Math.min(e.clientX + 12, innerWidth - tip.offsetWidth - 8);
+    tip.style.left = x + "px"; tip.style.top = (e.clientY + 14) + "px";
+  });
+  node.addEventListener("mouseleave", () => tip.classList.remove("on"));
+}
+
+// Every request lights the top loading bar.
+let inflight = 0;
+async function api(path, body) {
+  inflight++; $("loadbar").classList.add("on");
+  try {
+    const opts = body ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) } : {};
+    const res = await fetch(path, opts);
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 401) showAuthBanner(data.error);
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    return data;
+  } finally {
+    if (--inflight === 0) $("loadbar").classList.remove("on");
+  }
+}
+
+function renderControls() {
+  const dash = state.page === "dash";
+  $("views").replaceChildren(...VIEWS.filter(([k]) => !layout.views.has(k)).map(([k, label]) =>
+    el("button", { class: dash && state.view === k ? "on" : "", onclick: () => setView(k) }, icon(k), label)));
+  $("pages").replaceChildren(
+    el("button", { class: state.page === "ask" ? "on" : "", onclick: () => showAsk() }, icon("ai"), "Ask AI"),
+    el("button", { class: state.page === "activity" ? "on" : "", onclick: showActivity }, icon("activity"), "Activity"),
+    el("button", { class: state.page === "settings" ? "on" : "", onclick: showSettings }, icon("gear"), "Settings"),
+    el("button", { class: state.page === "help" ? "on" : "", onclick: () => showHelp() }, icon("help"), "Help"));
+  for (const [id, page] of [["dashPage", "dash"], ["activityPage", "activity"], ["settingsPage", "settings"], ["askPage", "ask"], ["searchPage", "search"], ["helpPage", "help"]])
+    $(id).hidden = state.page !== page;
+  $("scopes").style.visibility = dash || state.page === "search" ? "" : "hidden";
+  document.body.classList.toggle("no-insights", !dash);
+  $("pageTitle").textContent = { dash: "Inbox cleanup", activity: "Activity", settings: "Settings", ask: "Ask AI", help: "Help",
+    search: `Search: “${state.searchQ}”` }[state.page];
+  $("aiFilters").hidden = !AI_VIEWS.has(state.view) || !state.hasAi;
+  $("scopes").replaceChildren(...SCOPES.map(([k, label]) =>
+    el("button", { class: state.scope === k ? "on" : "", onclick: () => { state.scope = k; state.open = null; state.pageNum = 1; clearSelection(false); renderControls(); refreshAll(); } }, label)));
+  $("tableTitle").textContent = VIEWS.find(([k]) => k === state.view)[1];
+}
+function setView(view, openKey = null, filters = null) {
+  const fromActivity = state.page !== "dash";
+  clearSelection(false);
+  state.page = "dash"; state.view = view; state.open = openKey; state.q = ""; state.pageNum = 1; $("search").value = "";
+  state.emails = null; state.emailsTitle = "";
+  if (filters) {
+    state.aiAction = filters.aiAction || ""; state.aiCategory = filters.aiCategory || "";
+    if (filters.q) { state.q = filters.q; $("search").value = filters.q; }
+    if (filters.emails) { state.emails = filters.emails; state.emailsTitle = filters.title || `${filters.emails.length} senders`; }
+  }
+  $("aiAction").value = state.aiAction; $("aiCategory").value = state.aiCategory;
+  renderControls();
+  if (fromActivity) loadOverview().catch(() => {});
+  if (filters) document.querySelector(".table-card").scrollIntoView({ behavior: "smooth" });
+  return load().then(() => {
+    if (openKey === null) return;
+    const row = document.querySelector(`tr.bundle[data-key="${CSS.escape(openKey)}"]`);
+    if (row) row.scrollIntoView({ behavior: "smooth", block: "center" });
+  });
+}
+
+// ---------------------------------------------------------------- sync progress
+const PHASES = {
+  starting: "Starting sync", "checking changes": "Checking for changes", "fetching headers": "Downloading message headers",
+  done: "Sync complete", failed: "Sync failed",
+};
+const samples = [];
+function phaseTitle(p) {
+  if (p.phase.startsWith("listing")) {
+    const q = p.phase.slice(8);
+    return q === "is:unread" ? "Finding your unread messages" : "Finding messages" + (q ? ` (${q})` : "");
+  }
+  if (p.phase.startsWith("rate limited")) return "Gmail rate limit, " + p.phase.replace("rate limited, ", "");
+  return PHASES[p.phase] || cap(p.phase);
+}
+function renderJob(prefix, p, samples, titleFn, doneText, errorTitle) {
+  const card = $(prefix + "Card");
+  const finished = p.phase === "done" || p.phase === "stopped";
+  const showDone = finished && Date.now() - (renderJob.doneAt[prefix] || 0) < 6000;
+  if (!p.running && !p.error && !showDone) { card.hidden = true; samples.length = 0; return; }
+  card.hidden = false;
+  card.className = "card sync" + (p.error ? " failed" : p.phase === "done" ? " done" : p.phase === "stopped" ? " stopped"
+    : p.phase.startsWith("rate limited") || p.stopping ? " paused" : "");
+  const stepText = p.running && p.steps > 1 && p.step ? `Step ${p.step} of ${p.steps} · ` : "";
+  $(prefix + "Title").textContent = p.error ? errorTitle : p.stopping && p.running ? "Stopping after the current batch…" : stepText + titleFn(p);
+  const stop = $(prefix + "Stop");
+  if (stop) { stop.hidden = !p.running; stop.disabled = !!p.stopping; }
+  const bar = $(prefix + "Bar"), fill = bar.firstElementChild;
+  const determinate = p.total > 0 && p.phase !== "starting";
+  bar.classList.toggle("indet", p.running && !determinate);
+  fill.style.width = p.phase === "done" ? "100%" : p.phase === "stopped" ? fill.style.width : determinate ? Math.min(100, (p.done / p.total) * 100).toFixed(1) + "%" : "0%";
+
+  let meta = "";
+  if (p.error) meta = p.error;
+  else if (p.phase === "stopped") meta = `Stopped. ${fmtNum(p.categorized ?? p.done)} saved; resume anytime from the AI categories card.`;
+  else if (p.phase === "done") meta = doneText;
+  else if (determinate) {
+    if (samples.phase !== p.phase) { samples.length = 0; samples.phase = p.phase; }
+    samples.push([Date.now(), p.done]);
+    while (samples.length && Date.now() - samples[0][0] > 30000) samples.shift();
+    const [t0, d0] = samples[0];
+    const rate = (p.done - d0) / Math.max(1, (Date.now() - t0) / 1000);
+    const left = rate > 0.2 ? Math.ceil((p.total - p.done) / rate) : null;
+    const bytes = prefix === "pull", approx = p.estimate ? "~" : "";
+    meta = bytes ? `${fmtBytes(p.done)} of ${fmtBytes(p.total)} · ${pct(p.done, p.total)}%`
+      : `${fmtNum(p.done)} of ${approx}${fmtNum(p.total)} · ${pct(p.done, p.total)}%`;
+    if (rate >= 1) meta += bytes ? ` · ${fmtBytes(rate)}/s` : ` · ${fmtNum(Math.round(rate))}/s`;
+    if (left !== null) meta += left > 90 ? ` · about ${Math.round(left / 60)} min left` : ` · ${left}s left`;
+    if (p.warning) meta += ` · ${p.warning}`;
+  } else if (p.phase === "checking changes") meta = p.done ? `${fmtNum(p.done)} changed messages found so far` : "Asking Gmail what changed since the last sync…";
+  else if (p.phase.startsWith("listing")) meta = p.done ? `${fmtNum(p.done)} messages found so far` : "Asking Gmail for the list of messages…";
+  else if (p.phase === "starting") meta = "Connecting to Gmail…";
+  else if (p.done) meta = `${fmtNum(p.done)} found`;
+  $(prefix + "Meta").textContent = meta;
+}
+renderJob.doneAt = {};
+const aiSamples = [];
+const renderSync = (p) => renderJob("sync", p, samples, phaseTitle, "All caught up", "Sync failed");
+const pullSamples = [];
+const renderPull = (p) => { state.pulling = p.running; return renderJob("pull", p, pullSamples,
+  (p) => p.phase === "done" ? `${p.model || "Model"} ready` : `Downloading ${p.model || "model"}`, "Downloaded and selected", "Download failed"); };
+const renderAi = (p) => { if (state.aiRunning !== p.running) { state.aiRunning = p.running; if (state.page === "dash" && state.hasAi !== undefined) loadOverview().catch(() => {}); } return renderJob("ai", p, aiSamples,
+  (p) => p.phase === "done" ? "Senders categorized" : p.phase === "stopped" ? "Categorizing stopped" : `Categorizing senders${p.model ? " with " + p.model : ""}`,
+  "Done. Tags and filters are ready.", "Categorizing failed"); };
+
+async function refreshStatus() {
+  const s = await api("/api/status");
+  if (!state.auth) $("account").textContent = s.email || "Not synced yet";
+  $("lastSync").textContent = s.last_sync ? "Synced " + new Date(s.last_sync * 1000).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "";
+  $("subtitle").textContent = `${fmtNum(s.stats.fetched)} messages cached · ${fmtNum(s.stats.unread)} unread`;
+  $("syncBtn").disabled = $("unreadBtn").disabled = s.sync.running;
+  renderSync(s.sync);
+  renderAi(s.ai);
+  if (!$("settingsPage").hidden || s.pull.running) renderPull(s.pull);
+  return s;
+}
+async function startSync(body = {}) {
+  samples.length = 0;
+  renderSync({ running: true, phase: "starting", done: 0, total: 0 });
+  try { await api("/api/sync", body); pollSync.was = { ...pollSync.was, sync: true }; pollSync(); }
+  catch (e) { toast(e.message); refreshStatus(); }
+}
+let pollTimer;
+async function pollSync() {
+  clearTimeout(pollTimer);
+  const s = await refreshStatus().catch(() => null);
+  if (!s) return;
+  const running = s.sync.running || s.ai.running || s.pull.running;
+  if (running) {
+    pollTimer = setTimeout(pollSync, 1000);
+    if ((pollSync.n = (pollSync.n || 0) + 1) % 8 === 0 && (s.sync.phase === "fetching headers" || s.ai.running)) refreshAll();
+  }
+  for (const [job, render] of [["sync", renderSync], ["ai", renderAi], ["pull", renderPull]]) {
+    if (!s[job].running && pollSync.was?.[job]) {
+      if (["done", "stopped"].includes(s[job].phase)) { renderJob.doneAt[job] = Date.now(); render(s[job]); setTimeout(refreshStatus, 6200); }
+      refreshAll();
+    }
+  }
+  pollSync.was = { sync: s.sync.running, ai: s.ai.running, pull: s.pull.running };
+}
+
+// ---------------------------------------------------------------- dashboard
+async function loadOverview() {
+  const o = await api("/api/overview?" + new URLSearchParams({ scope: state.scope }));
+  const k = o.kpis;
+  const tiles = [
+    { icon: "mail", label: "Messages", value: fmtCompact(k.messages), full: fmtNum(k.messages), foot: `from ${fmtNum(k.senders)} senders` },
+    { icon: "dot", label: "Unread", value: fmtCompact(k.unread), full: fmtNum(k.unread), foot: `${pct(k.unread, k.messages)}% of messages`, meter: pct(k.unread, k.messages) },
+    { icon: "list", label: "From mailing lists", value: fmtCompact(k.list_messages), full: fmtNum(k.list_messages), foot: `${fmtNum(k.list_senders)} senders you can unsubscribe from`, meter: pct(k.list_messages, k.messages) },
+    { icon: "disk", label: "Storage", value: fmtBytes(k.bytes), full: fmtNum(k.bytes) + " bytes", foot: `avg ${fmtBytes(k.messages ? k.bytes / k.messages : 0)} per message` },
+  ];
+  $("kpis").replaceChildren(...tiles.map((t) => el("div", { class: "card kpi" },
+    el("div", { class: "label" }, icon(t.icon), t.label),
+    el("div", { class: "value", title: t.full }, t.value),
+    t.meter !== undefined ? el("div", { class: "meter" }, el("i", { style: `width:${t.meter}%` })) : null,
+    el("div", { class: "foot" }, t.foot))));
+
+  // Top senders (single series, magnitude)
+  const top = o.top_senders, max = Math.max(1, ...top.map((r) => r.n));
+  $("chartSenders").replaceChildren(...(top.length ? top.map((r) => {
+    const row = el("div", { class: "hbar", onclick: () => setView("sender", r.key) },
+      el("span", { class: "name" }, r.label || r.key),
+      el("div", { class: "track" }, el("div", { class: "fill", style: `width:${(r.n / max) * 100}%` })),
+      el("span", { class: "v" }, fmtNum(r.n)));
+    attachTip(row, [r.label || r.key, r.key, `${fmtNum(r.n)} messages · ${fmtNum(r.unread)} unread · ${fmtBytes(r.bytes)}`]);
+    return row;
+  }) : [el("div", { class: "muted" }, "No messages")]));
+
+  // Mail by year (single series, change over time)
+  const years = o.years, ymax = Math.max(1, ...years.map((r) => r.n));
+  const nice = niceMax(ymax);
+  const cols = el("div", { class: "cols" },
+    [0.5, 1].map((f) => el("div", { class: "gl", style: `bottom:${f * 100}%` }, el("span", {}, fmtCompact(nice * f)))),
+    years.map((r) => {
+      const c = el("div", { class: "col", onclick: () => setView("year", r.key) }, el("i", { style: `height:${(r.n / nice) * 100}%` }));
+      attachTip(c, [r.key, `${fmtNum(r.n)} messages`]);
+      return c;
+    }));
+  const step = Math.ceil(years.length / 8);
+  $("chartYears").replaceChildren(years.length ? cols : el("div", { class: "muted" }, "No messages"),
+    el("div", { class: "xlabels" }, years.map((r, i) => el("span", {}, i % step === 0 || i === years.length - 1 ? "’" + r.key.slice(2) : ""))));
+
+  renderAiChart(o.ai);
+
+  // Categories (part-to-whole, fixed entity colors, legend carries the numbers)
+  const cats = CAT_ORDER.map((key) => o.categories.find((c) => c.key === key)).filter(Boolean);
+  const total = cats.reduce((a, c) => a + c.n, 0);
+  const color = (key) => `var(${CAT_COLOR[key]})`;
+  $("chartCats").replaceChildren(
+    el("div", { class: "stack" }, cats.map((c) => {
+      const seg = el("i", { style: `flex:${c.n};background:${color(c.key)}`, onclick: () => setView("category", c.key) });
+      attachTip(seg, [cap(c.key), `${fmtNum(c.n)} messages · ${pctLabel(c.n, total)}`]);
+      return seg;
+    })),
+    el("div", { class: "legend" }, cats.map((c) => el("button", { onclick: () => c.key !== "other" && setView("category", c.key) },
+      el("span", { class: "sw", style: `background:${color(c.key)}` }), cap(c.key),
+      el("span", { class: "n" }, fmtNum(c.n)), el("span", { class: "pct" }, pctLabel(c.n, total))))));
+}
+async function renderAiChart(a) {
+  state.hasAi = a.categories.length > 0;
+  $("aiFilters").hidden = !AI_VIEWS.has(state.view) || !state.hasAi;
+  api("/api/ai/estimate").then((e) => $("aiHint").textContent = e.provider === "ollama" ? (e.model || "Local model") : "Claude Opus 5.5").catch(() => {});
+  const box = $("chartAi");
+  if (!state.hasAi) {
+    let est;
+    try { est = await api("/api/ai/estimate"); } catch (e) { box.replaceChildren(el("div", { class: "ai-cta" }, el("p", {}, e.message))); return; }
+    const local = est.provider === "ollama";
+    const btn = est.ready
+      ? el("button", { class: "btn primary", onclick: startCategorize }, icon("ai"), "Categorize senders")
+      : el("button", { class: "btn primary", onclick: showSettings }, icon("gear"), "Set up in Settings");
+    btn.disabled = est.ready && est.senders === 0;
+    box.replaceChildren(el("div", { class: "ai-cta" },
+      el("p", {}, `Let ${local ? "a local model" : "Claude"} sort your ${fmtNum(est.senders)} senders into categories and suggest which to keep, archive or unsubscribe from.`),
+      el("div", { class: "row" }, btn,
+        el("span", { class: "muted" }, local ? `Free · runs on this Mac${est.model ? " · " + est.model : ""}`
+          : `Estimated one-time cost: ${money(est.cost_low)}–${money(est.cost_high)}`)),
+      !est.ready ? el("p", {}, est.reason) : null));
+    return;
+  }
+  const max = Math.max(...a.categories.map((c) => c.n));
+  const actions = Object.fromEntries(a.actions.map((x) => [x.key, x]));
+  const sugg = (key, label) => actions[key] ? el("button", { onclick: () => setView("sender", null, { aiAction: key, aiCategory: "" }) },
+    el("span", {}, label), el("span", { class: "n" }, `${fmtNum(actions[key].senders)} senders · ${fmtNum(actions[key].n)} msgs`)) : null;
+  box.replaceChildren(el("div", { class: "body" },
+    ...a.categories.slice(0, 8).map((c) => {
+      const row = el("div", { class: "hbar", onclick: () => setView("sender", null, { aiCategory: c.key, aiAction: "" }) },
+        el("span", { class: "name" }, c.key),
+        el("div", { class: "track" }, el("div", { class: "fill", style: `width:${(c.n / max) * 100}%` })),
+        el("span", { class: "v" }, fmtNum(c.n)));
+      attachTip(row, [c.key, `${fmtNum(c.n)} messages from ${fmtNum(c.senders)} senders`]);
+      return row;
+    }),
+    el("div", { class: "suggest" },
+      sugg("unsubscribe", "Suggested: unsubscribe"), sugg("archive", "Suggested: archive")),
+    el("div", { class: "ai-more", id: "aiMore" })));
+  api("/api/ai/estimate").then((est) => {
+    const more = $("aiMore");
+    if (!more || !est.senders) return;
+    const running = state.aiRunning;
+    const b = el("button", { class: "btn sm", onclick: startCategorize, disabled: running || !est.ready ? "" : null },
+      icon("ai"), running ? "Categorizing…" : `Categorize ${fmtNum(est.senders)} remaining senders`);
+    more.replaceChildren(...[b, est.ready ? null : el("span", { class: "muted" }, est.reason)].filter(Boolean));
+  }).catch(() => {});
+}
+
+async function startCategorize() {
+  let est;
+  try { est = await api("/api/ai/estimate"); } catch (e) { toast(e.message); return; }
+  if (!est.ready) { toast(est.reason); showSettings(); return; }
+  const local = est.provider === "ollama";
+  const body = local
+    ? `Runs ${est.model} on this Mac: free, and nothing leaves your computer.\n\nIt takes a while (${fmtNum(est.batches)} requests) and your Mac will be busy. You can keep using emliq and stop it anytime.`
+    : `Uses ${est.model}. Estimated one-time cost: ${money(est.cost_low)}–${money(est.cost_high)}, billed to your Anthropic account (${est.batches} requests).\n\n` +
+      `Sent to Anthropic: each sender's name, address, message count and up to 3 recent subject lines. Message bodies are never read.`;
+  if (!(await ask({ title: `Categorize ${fmtNum(est.senders)} senders?`, body, confirm: "Start categorizing" }))) return;
+  try {
+    aiSamples.length = 0;
+    renderAi({ running: true, phase: "starting", done: 0, total: 0 });
+    await api("/api/ai/categorize", {});
+    pollSync.was = { ...pollSync.was, ai: true }; pollSync();
+  } catch (e) { toast(e.message); refreshStatus(); }
+}
+
+const money = (v) => "$" + (v < 1 ? v.toFixed(2) : Math.round(v));
+
+// ---------------------------------------------------------------- settings page
+function showSettings() {
+  showPage("settings");
+  return loadSettings();
+}
+async function loadSettings() {
+  state.auth = await api("/api/auth").catch(() => state.auth);
+  renderAccountCard();
+  const [st, est] = await Promise.all([api("/api/settings"), api("/api/ai/estimate")]);
+  state.settings = st;
+  const k = st.anthropic, local = st.ai.provider === "ollama", o = st.ollama;
+  document.querySelectorAll("#providerSeg button").forEach((b) => b.classList.toggle("on", b.dataset.provider === st.ai.provider));
+  $("providerNote").textContent = local
+    ? "Runs entirely on this Mac. Free, and nothing about your email leaves your computer. Slower than Claude."
+    : "Fast and very accurate. Sender names, addresses and a few subject lines are sent to Anthropic; billed to your API key.";
+  $("ollamaCard").style.order = local ? "0" : "1";
+  $("claudeCard").style.order = local ? "1" : "0";
+  $("ollamaCard").style.opacity = local ? "1" : ".75";
+  $("claudeCard").style.opacity = local ? ".75" : "1";
+
+  // Claude key
+  $("keyStatus").replaceChildren(el("span", { class: "status" + (k.configured ? " ok" : "") }, el("span", { class: "d" }),
+    k.configured ? `Connected${k.hint ? " · key ending " + k.hint : ""}${k.source === "environment" ? " · from ANTHROPIC_API_KEY" : ""}` : "Not set"));
+  $("keyRemove").hidden = k.source !== "settings";
+  $("keyInput").placeholder = k.configured ? "Paste a new key to replace it" : "sk-ant-…";
+
+  // Ollama
+  $("ollamaStatus").replaceChildren(el("span", { class: "status" + (o.reachable ? " ok" : "") }, el("span", { class: "d" }),
+    o.reachable ? `Ollama ${o.version} running at ${st.ai.ollama_url}` : (o.error || "Ollama isn't reachable")));
+  const installed = o.models || [];
+  if (installed.length) {
+    const sel = el("select", { "aria-label": "Local model", onchange: (e) => saveAi({ provider: "ollama", ollama_model: e.target.value }) },
+      el("option", { value: "" }, "Choose a model…"),
+      installed.map((m) => { const op = el("option", { value: m.name }, `${m.name} · ${fmtBytes(m.size)}`); op.selected = m.name === st.ai.ollama_model; return op; }));
+    $("ollamaPick").replaceChildren(el("span", {}, "Model"), sel);
+  } else {
+    $("ollamaPick").replaceChildren(el("span", { class: "muted" }, o.reachable ? "No models downloaded yet." : ""));
+  }
+  const have = new Set(installed.map((m) => m.name));
+  $("ollamaModels").replaceChildren(...o.recommended.map((m) => el("div", { class: "model-row" },
+    el("div", {}, el("b", {}, m.name), " ", el("span", { class: "muted" }, `${m.size} · ${m.note}`)),
+    have.has(m.name)
+      ? el("span", { class: "muted" }, st.ai.ollama_model === m.name ? "In use" : "Downloaded")
+      : el("button", { class: "btn sm", disabled: !o.reachable || state.pulling ? "" : null, onclick: () => pullModel(m) }, "Download"))));
+
+  // Cost
+  const done = `${fmtNum(st.categorized)} senders categorized so far. You're asked to confirm before anything runs.`;
+  if (local) {
+    $("costText").replaceChildren(el("b", {}, "Free."),
+      ` The model runs on your Mac, so there's no charge. ${est.senders ? `Your ${fmtNum(est.senders)} uncategorized senders take ${fmtNum(est.batches)} requests; expect roughly ${Math.max(5, Math.round(est.senders / 60))}–${Math.max(10, Math.round(est.senders / 30))} minutes, during which your Mac will be busy.` : ""} ${done}`);
+  } else {
+    $("costText").replaceChildren(
+      `Categorizing uses ${st.model} and is billed by Anthropic to the account that owns the key. `,
+      est.senders
+        ? el("b", {}, `Your ${fmtNum(est.senders)} uncategorized senders would cost about ${money(est.cost_low)}–${money(est.cost_high)} once`)
+        : el("b", {}, "All your senders are categorized, so there's nothing to pay for right now"),
+      `, based on ${fmtNum(est.batches)} requests of up to 40 senders each. Later runs only cover new senders. ${done}`);
+  }
+  $("facts").replaceChildren(
+    el("dt", {}, "Gmail account"), el("dd", {}, st.email || "not signed in"),
+    el("dt", {}, "Data folder"), el("dd", {}, st.data_dir),
+    el("dt", {}, "Stored per email"), el("dd", {}, "Sender name and address, subject, date, Gmail labels, size and unsubscribe link. Never the email's content or attachments."),
+    el("dt", {}, local ? "Sent anywhere" : "Sent to Anthropic"),
+    el("dd", {}, local ? "Nothing. Categorizing happens on this Mac." : "Sender name, address, message count, mailing-list flag, up to 3 recent subject lines. Never message bodies."));
+}
+async function saveAi(body) {
+  $("ollamaErr").textContent = "";
+  try { await api("/api/settings/ai", body); await loadSettings(); }
+  catch (e) { $("ollamaErr").textContent = e.message; }
+}
+async function pullModel(m) {
+  if (!(await ask({ title: `Download ${m.name}?`,
+    body: `${m.size} from Ollama's model library. It's stored by Ollama on this Mac and used for local categorizing.\n\nYou can keep using emliq while it downloads.`,
+    confirm: `Download ${m.size}` }))) return;
+  try {
+    pullSamples.length = 0;
+    renderPull({ running: true, phase: "starting", done: 0, total: 0 });
+    await api("/api/ollama/pull", { model: m.name });
+    pollSync.was = { ...pollSync.was, pull: true }; pollSync();
+  } catch (e) { $("ollamaErr").textContent = e.message; }
+}
+async function saveKey(e) {
+  e.preventDefault();
+  const input = $("keyInput"), key = input.value.trim();
+  $("keyErr").textContent = "";
+  if (!key) { $("keyErr").textContent = "Paste your key first."; return; }
+  $("keySave").disabled = true; $("keySave").textContent = "Testing…";
+  try {
+    await api("/api/settings/anthropic", { key });
+    input.value = "";
+    toast("Anthropic key saved and working");
+    await loadSettings();
+  } catch (err) { $("keyErr").textContent = err.message; }
+  $("keySave").disabled = false; $("keySave").textContent = "Save & test";
+}
+async function removeKey() {
+  if (!(await ask({ title: "Remove Anthropic key?", body: "The saved key is deleted from this computer. Claude categorizing stops working until you add a key again.",
+    confirm: "Remove key", danger: true }))) return;
+  try { await api("/api/settings/anthropic", { remove: true }); toast("Key removed"); await loadSettings(); }
+  catch (err) { toast(err.message); }
+}
+
+function niceMax(v) {
+  const p = Math.pow(10, Math.floor(Math.log10(v)));
+  return [1, 2, 2.5, 5, 10].map((m) => m * p).find((m) => m >= v);
+}
+
+// ---------------------------------------------------------------- bundle table
+function skeleton() {
+  return el("table", {}, el("tbody", {}, Array.from({ length: 6 }, () => el("tr", {},
+    el("td", {}, el("div", { class: "skel", style: "width:60%" })),
+    el("td", {}, el("div", { class: "skel", style: "width:40%;margin-left:auto" })),
+    el("td", { class: "hide-sm" }, el("div", { class: "skel" }))))));
+}
+async function load() {
+  if (!$("content").querySelector("table")) $("content").replaceChildren(skeleton());
+  const params = new URLSearchParams({ view: state.view, scope: state.scope, q: state.q, sort: state.sort,
+    page: state.pageNum, per_page: state.perPage });
+  if (state.emails && state.view === "sender") params.set("emails", state.emails.join(","));
+  $("emailsChip").hidden = !(state.emails && state.view === "sender");
+  $("emailsChipText").textContent = "Ask AI: " + state.emailsTitle;
+  if (AI_VIEWS.has(state.view) && state.hasAi) {
+    if (state.aiAction) params.set("ai_action", state.aiAction);
+    if (state.aiCategory) params.set("ai_category", state.aiCategory);
+  }
+  let data;
+  try { data = await api("/api/bundles?" + params); }
+  catch (e) { $("content").replaceChildren(el("div", { class: "empty" }, e.message)); return; }
+  const rows = data.bundles;
+  state.rows = rows; state.total = data.total;
+  // Selections persist across pages; refresh the ones visible here.
+  for (const r of rows) if (state.selected.has(r.key)) state.selected.set(r.key, r);
+  renderBulk();
+  $("summary").textContent = `${fmtNum(data.total)} bundles · ${fmtNum(data.total_messages)} messages`;
+  renderPager($("pager"), data.total, state.pageNum, state.perPage, (page, per) => {
+    if (per !== state.perPage) { state.perPage = per; store("perPage", per); page = 1; }
+    state.pageNum = page; state.open = null; state.lastSel = null; load();
+    document.querySelector(".table-card").scrollIntoView({ behavior: "smooth" });
+  });
+  if (!rows.length && state.pageNum > 1) { state.pageNum = Math.max(1, Math.ceil(data.total / state.perPage)); return load(); }
+  if (!rows.length) {
+    $("content").replaceChildren(el("div", { class: "empty" }, state.q || state.aiAction || state.aiCategory ? "No bundles match that filter." : "Nothing here. Run a sync, or try another scope."));
+    return;
+  }
+  const max = Math.max(...rows.map((r) => r.n));
+  const tbody = el("tbody");
+  for (const r of rows) tbody.append(...bundleRows(r, max));
+  $("content").replaceChildren(el("table", {},
+    el("thead", {}, el("tr", {},
+      el("th", { class: "sel" }, headerCheckbox()),
+      el("th", {}, "Bundle"), el("th", { class: "num" }, "Messages"), el("th", { class: "num hide-sm" }, "Unread"),
+      el("th", { class: "num hide-sm" }, "Size"), el("th", { class: "hide-md" }, "Latest"), el("th", { class: "num" }, "Actions"))),
+    tbody));
+}
+function refreshAll() {
+  if (state.page === "activity") return loadActivity();
+  if (state.page === "settings") return loadSettings();
+  if (state.page === "search") return runSearch(state.searchQ);
+  if (state.page === "ask") return renderThread();
+  return Promise.all([loadOverview().catch((e) => toast(e.message)).then(load)]);
+}
+
+function renderPager(box, total, page, perPage, onChange) {
+  const pages = Math.max(1, Math.ceil(total / perPage));
+  const from = total ? (page - 1) * perPage + 1 : 0, to = Math.min(total, page * perPage);
+  const pg = (n, label = n, extra = {}) => el("button", { class: "pg" + (n === page ? " on" : ""), onclick: () => onChange(n, perPage), ...extra }, label);
+  const nums = [];
+  const want = new Set([1, pages, page - 1, page, page + 1].filter((n) => n >= 1 && n <= pages));
+  let prev = 0;
+  for (const n of [...want].sort((a, b) => a - b)) {
+    if (n - prev > 1) nums.push(el("span", { class: "gap" }, "…"));
+    nums.push(pg(n)); prev = n;
+  }
+  const sel = el("select", { "aria-label": "Rows per page", onchange: (e) => onChange(1, +e.target.value) },
+    PER_PAGE.map((n) => { const o = el("option", { value: n }, n); o.selected = n === perPage; return o; }));
+  box.replaceChildren(total <= PER_PAGE[0] && page === 1 ? "" : el("div", { class: "pager" },
+    el("label", { class: "perpage" }, "Rows per page", sel),
+    el("span", {}, `${fmtNum(from)}–${fmtNum(to)} of ${fmtNum(total)}`),
+    el("div", { class: "pages" },
+      pg(page - 1, "‹", { "aria-label": "Previous page", disabled: page <= 1 ? "" : null }), ...nums,
+      pg(page + 1, "›", { "aria-label": "Next page", disabled: page >= pages ? "" : null }))));
+}
+
+function bundleTitle(r) {
+  if (state.view === "sender" || state.view === "list") return [r.label || r.key, r.key];
+  if (state.view === "category") return [cap(r.key), null];
+  return [r.label || r.key, null];
+}
+function aiTags(r) {
+  if (!r.ai_category) return null;
+  const labels = { unsubscribe: "Unsubscribe?", archive: "Archive?", keep: "Keep" };
+  const box = el("span", { class: "ai-tags" },
+    el("span", { class: "ai-tag" }, r.ai_category),
+    el("span", { class: "ai-tag " + r.ai_action }, labels[r.ai_action] || r.ai_action));
+  attachTip(box, ["Claude: " + r.ai_category, `Suggests ${r.ai_action}` + (r.ai_reason ? ` · ${r.ai_reason}` : "")]);
+  return box;
+}
+function avatarColor(key) {
+  let h = 0; for (const ch of key) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return `var(--series-${(h % 5) + 1})`;
+}
+function bundleRows(r, max) {
+  const [title, sub] = bundleTitle(r);
+  const btn = (name, label, fn, cls = "") => {
+    const b = el("button", { class: "ib " + cls, "aria-label": label, onclick: (e) => { e.stopPropagation(); fn(e.currentTarget); } }, icon(name));
+    attachTip(b, [label]);
+    return b;
+  };
+  const off = (label) => el("span", { class: "ib ghost", "aria-hidden": "true" });
+  // Fixed slots so icons line up down the column.
+  const actions = el("div", { class: "actions" },
+    btn("chev", "Show messages", () => togglePreview(r, row), "chev"),
+    r.unread ? btn("read", "Mark all read", (b) => act(r, "read", b)) : off(),
+    state.scope !== "all" || r.inbox ? btn("archive", "Archive all", (b) => act(r, "archive", b)) : off(),
+    r.can_unsubscribe ? btn("unsub", "Unsubscribe", (b) => unsubscribe(r, b)) : off(),
+    BLOCKABLE.has(state.view) ? btn("block", "Block future mail", (b) => block(r, b), "danger") : off(),
+    btn("trash", "Move all to Trash", (b) => act(r, "trash", b), "danger"));
+  const showAvatar = ["sender", "domain", "list"].includes(state.view);
+  const selected = state.selected.has(r.key);
+  const circle = el("button", {
+    class: "avatar sel-btn" + (showAvatar ? "" : " plain"), role: "checkbox", "aria-checked": String(selected),
+    "aria-label": "Select " + title, title: "Select (Shift-click for a range)",
+    style: showAvatar ? `background:${avatarColor(r.key)}` : null,
+    onclick: (e) => { e.stopPropagation(); selectClick(r, row, e); },
+  }, showAvatar ? (title || "?").trim()[0].toUpperCase() : icon(state.view), el("span", { class: "ck" }, icon("check")));
+  const row = el("tr", { class: "bundle" + (state.open === r.key ? " open" : "") + (selected ? " selected" : ""), "data-key": r.key,
+    onclick: (e) => {
+      if (e.target.closest("a, .actions")) return;
+      // Once anything is selected, a click anywhere on a row adds/removes it.
+      if (state.selected.size || e.shiftKey) selectClick(r, row, e); else togglePreview(r, row);
+    } },
+    el("td", { class: "sel", onclick: (e) => { e.stopPropagation(); if (e.target === e.currentTarget) selectClick(r, row, e); } },
+      el("input", { type: "checkbox", class: "cb", "aria-label": "Select " + title, checked: selected ? "" : null,
+        onclick: (e) => { e.stopPropagation(); selectClick(r, row, e); } })),
+    el("td", {}, el("div", { class: "who" }, circle,
+      el("div", { class: "who-t" },
+        el("div", { class: "name", title }, title, r.can_unsubscribe && (state.view === "sender" || state.view === "domain") ? el("span", { class: "tag" }, "list") : null),
+        sub ? el("div", { class: "subline" }, sub) : null, aiTags(r)))),
+    el("td", { class: "num" }, el("div", { class: "count" },
+      el("span", { class: "spark hide-sm" }, el("i", { style: `width:${(r.n / max) * 100}%` })), fmtNum(r.n))),
+    el("td", { class: "num hide-sm" }, fmtNum(r.unread)),
+    el("td", { class: "num hide-sm nowrap" }, fmtBytes(r.bytes)),
+    el("td", { class: "hide-md muted nowrap" }, fmtDate(r.latest)),
+    el("td", {}, actions));
+  const rows = [row];
+  if (state.open === r.key) { const p = previewRow(); rows.push(p); fillPreview(r, p); }
+  return rows;
+}
+function previewRow() { return el("tr", { class: "preview" }, el("td", { colspan: 7 }, el("div", { class: "preview-list" }, el("div", { class: "skel", style: "width:50%;margin:8px 0" }), el("div", { class: "skel", style: "width:35%" })))); }
+async function fillPreview(r, tr) {
+  if (state.view === "ai") return fillCategorySenders(r, tr);
+  const params = new URLSearchParams({ view: state.view, scope: state.scope, key: r.key });
+  const { messages } = await api("/api/messages?" + params);
+  tr.querySelector(".preview-list").replaceChildren(...messageRows(messages, state.view !== "sender"),
+    r.n > messages.length ? el("div", { class: "muted", style: "padding-top:8px" }, `…and ${fmtNum(r.n - messages.length)} more`) : null);
+}
+function messageRows(messages, showSender) {
+  return messages.map((m) => el("div", { class: "prow" },
+    el("span", { class: "muted" }, fmtDate(m.date)),
+    el("span", { class: m.unread ? "u" : "" },
+      el("a", { href: `https://mail.google.com/mail/u/0/#all/${m.thread_id}`, target: "_blank", rel: "noopener" }, m.subject || "(no subject)"),
+      showSender ? el("span", { class: "muted" }, " · " + (m.from_name || m.from_email)) : null),
+    el("span", { class: "muted", style: "text-align:right" }, fmtBytes(m.size))));
+}
+
+// AI categories: list the category's senders first; click a sender to see its emails.
+async function fillCategorySenders(r, tr) {
+  const params = new URLSearchParams({ view: "sender", scope: state.scope, ai_category: r.key, per_page: 50, page: 1 });
+  const data = await api("/api/bundles?" + params);
+  const box = tr.querySelector(".preview-list");
+  box.classList.add("senders");
+  const max = Math.max(1, ...data.bundles.map((x) => x.n));
+  const labels = { unsubscribe: "Unsubscribe?", archive: "Archive?", keep: "Keep" };
+  box.replaceChildren(
+    el("div", { class: "cat-head" },
+      el("span", {}, el("b", {}, fmtNum(data.total)), ` ${data.total === 1 ? "sender" : "senders"} in ${r.key}`),
+      el("button", { class: "btn sm", onclick: (e) => { e.stopPropagation(); setView("sender", null, { aiCategory: r.key, aiAction: "" }); } },
+        "Select & clean up these senders →")),
+    ...data.bundles.map((x) => {
+      const [name] = [x.label || x.key];
+      const msgs = el("div", { class: "srow-msgs", hidden: "" });
+      const row = el("div", { class: "srow", role: "button", tabindex: "0", "aria-expanded": "false",
+        onclick: async (e) => {
+          e.stopPropagation();
+          const open = msgs.hidden;
+          msgs.hidden = !open; row.setAttribute("aria-expanded", String(open));
+          if (open && !msgs.childElementCount) {
+            msgs.replaceChildren(el("div", { class: "skel", style: "width:40%;margin:6px 0" }));
+            const { messages } = await api("/api/messages?" + new URLSearchParams({ view: "sender", scope: state.scope, key: x.key }));
+            msgs.replaceChildren(...messageRows(messages, false),
+              x.n > messages.length ? el("div", { class: "muted", style: "padding:4px 0" }, `…and ${fmtNum(x.n - messages.length)} more`) : null);
+          }
+        },
+        onkeydown: (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); row.click(); } } },
+        el("span", { class: "avatar sm", style: `background:${avatarColor(x.key)}` }, name.trim()[0]?.toUpperCase() || "?"),
+        el("div", { class: "who-t" }, el("div", { class: "name" }, name), el("div", { class: "subline" }, x.key)),
+        x.ai_action ? el("span", { class: "ai-tag " + x.ai_action, title: x.ai_reason || "" }, labels[x.ai_action]) : el("span"),
+        el("span", { class: "scount" }, el("span", { class: "spark hide-sm" }, el("i", { style: `width:${(x.n / max) * 100}%` })), fmtNum(x.n)),
+        el("span", { class: "chev-s" }, icon("chev")));
+      return el("div", {}, row, msgs);
+    }),
+    data.total > data.bundles.length ? el("div", { class: "muted", style: "padding-top:8px" },
+      `Showing the top ${data.bundles.length}. Use “Select & clean up” to see all ${fmtNum(data.total)}.`) : null);
+}
+function togglePreview(r, row) {
+  const wasOpen = state.open === r.key;
+  document.querySelectorAll("tr.preview").forEach((n) => n.remove());
+  document.querySelectorAll("tr.bundle.open").forEach((n) => n.classList.remove("open"));
+  state.open = null;
+  if (wasOpen) return;
+  state.open = r.key; row.classList.add("open");
+  const tr = previewRow(); row.after(tr); fillPreview(r, tr);
+}
+
+// ---------------------------------------------------------------- selection & bulk
+function headerCheckbox() {
+  const cb = el("input", { type: "checkbox", class: "cb", id: "selAll", "aria-label": "Select all bundles on this page",
+    onclick: (e) => e.stopPropagation(),
+    onchange: (e) => {
+      state.rows.forEach((r) => e.target.checked ? state.selected.set(r.key, r) : state.selected.delete(r.key));
+      document.querySelectorAll("tr.bundle").forEach((tr) => setRowSelected(tr, e.target.checked));
+      renderBulk();
+    } });
+  return cb;
+}
+function setRowSelected(tr, on) {
+  tr.classList.toggle("selected", on);
+  const cb = tr.querySelector("input.cb");
+  if (cb) cb.checked = on;
+  tr.querySelector(".sel-btn")?.setAttribute("aria-checked", String(on));
+}
+function rowFor(key) { return document.querySelector(`tr.bundle[data-key="${CSS.escape(key)}"]`); }
+// Click toggles one row; Shift-click selects every row between the last click and this one.
+function selectClick(r, row, e) {
+  const idx = state.rows.findIndex((x) => x.key === r.key);
+  if (e.shiftKey && state.lastSel != null && state.lastSel !== idx) {
+    const [a, b] = [Math.min(state.lastSel, idx), Math.max(state.lastSel, idx)];
+    for (const x of state.rows.slice(a, b + 1)) { state.selected.set(x.key, x); const tr = rowFor(x.key); if (tr) setRowSelected(tr, true); }
+    window.getSelection()?.removeAllRanges();  // shift-click also selects page text
+  } else {
+    const on = !state.selected.has(r.key);
+    on ? state.selected.set(r.key, r) : state.selected.delete(r.key);
+    setRowSelected(row, on);
+  }
+  state.lastSel = idx;
+  renderBulk();
+}
+function clearSelection(rerender = true) {
+  state.selected.clear();
+  state.lastSel = null;
+  if (rerender) document.querySelectorAll("tr.bundle.selected").forEach((tr) => setRowSelected(tr, false));
+  renderBulk();
+}
+function selectedStats() {
+  const rows = [...state.selected.values()];
+  return {
+    rows, keys: rows.map((r) => r.key),
+    messages: rows.reduce((a, r) => a + r.n, 0),
+    unread: rows.reduce((a, r) => a + (r.unread || 0), 0),
+    unsubscribable: rows.filter((r) => r.can_unsubscribe),
+  };
+}
+function renderBulk() {
+  const s = selectedStats(), n = s.rows.length;
+  $("bulkbar").hidden = n === 0;
+  document.body.classList.toggle("bulk-on", n > 0);
+  document.body.classList.toggle("selecting", n > 0);
+  const all = $("selAll");
+  const onPage = state.rows.filter((r) => state.selected.has(r.key)).length;
+  if (all) { all.checked = onPage > 0 && onPage === state.rows.length; all.indeterminate = onPage > 0 && onPage < state.rows.length; }
+  if (!n) return;
+  const offPage = n - onPage;
+  $("bulkWhat").replaceChildren(el("b", {}, fmtNum(n)), ` ${n === 1 ? "bundle" : "bundles"} · ${fmtNum(s.messages)} messages` + (offPage ? ` (${offPage} on other pages)` : ""),
+    ...(n < 3 ? [el("div", { class: "hint" }, "Click rows to add · Shift-click for a range")] : []));
+  const btn = (a) => document.querySelector(`[data-bulk="${a}"]`);
+  btn("read").disabled = s.unread === 0;
+  btn("unsubscribe").disabled = s.unsubscribable.length === 0;
+  btn("unsubscribe").textContent = s.unsubscribable.length && s.unsubscribable.length < n ? `Unsubscribe (${s.unsubscribable.length})` : "Unsubscribe";
+  btn("block").hidden = !BLOCKABLE.has(state.view);
+}
+function setBulkBusy(busy, label) {
+  document.querySelectorAll("#bulkbar button").forEach((b) => b.disabled = busy);
+  if (busy) $("bulkWhat").textContent = label; else renderBulk();
+}
+
+async function bulk(action) {
+  const s = selectedStats(), n = s.rows.length;
+  const names = s.rows.slice(0, 6).map((r) => "• " + bundleTitle(r)[0]).join("\n") + (n > 6 ? `\n…and ${n - 6} more` : "");
+  if (action === "unsubscribe") return bulkUnsubscribe(s);
+  const B = `${n} ${n === 1 ? "bundle" : "bundles"}`;
+  const prompts = {
+    read: [`Mark ${fmtNum(s.unread)} messages as read?`, `Across ${B}.`, "Mark read", false],
+    archive: [`Archive ${fmtNum(s.messages)} messages?`, `Across ${B}. They leave the inbox but stay searchable in All Mail.`, "Archive", false],
+    trash: [`Move ${fmtNum(s.messages)} messages to Trash?`, `From ${B}. Gmail empties Trash after 30 days, so you can still recover them until then.`, "Move to Trash", true],
+    block: [`Block ${B}?`, `Creates a Gmail filter for each so future mail skips the inbox, and archives the ${fmtNum(s.messages)} existing messages. Undo anytime in Gmail → Settings → Filters.`, "Block", true],
+  };
+  const [title, text, label, danger] = prompts[action];
+  if (!(await ask({ title, body: text + "\n\n" + names, confirm: label, danger }))) return;
+  setBulkBusy(true, action === "block" ? "Creating filters…" : "Working…");
+  try {
+    const res = await api("/api/bulk", { view: state.view, scope: state.scope, keys: s.keys, action });
+    if (action === "block") {
+      const ok = res.results.filter((r) => r.ok), bad = res.results.filter((r) => !r.ok);
+      toast(`${ok.length} filters created · ${fmtNum(ok.reduce((a, r) => a + r.count, 0))} messages archived` + (bad.length ? ` · ${bad.length} failed` : ""));
+    } else toast(`${LABELS[action]}: ${fmtNum(res.count)} messages from ${n} bundles`);
+    state.selected.clear();
+    await Promise.all([refreshAll(), refreshStatus()]);
+  } catch (e) { toast(e.message); }
+  setBulkBusy(false);
+}
+
+async function bulkUnsubscribe(s) {
+  const eligible = s.unsubscribable, skipped = s.rows.length - eligible.length;
+  if (!(await ask({ title: `Unsubscribe from ${eligible.length} ${eligible.length === 1 ? "sender" : "senders"}?`,
+    body: "For each one, emliq uses one-click unsubscribe if the sender supports it, otherwise sends an unsubscribe email from your account. Senders that only offer a web page are listed for you to open afterwards." +
+      (skipped ? `\n\n${skipped} selected ${skipped === 1 ? "bundle has" : "bundles have"} no unsubscribe option and will be skipped.` : ""),
+    confirm: "Unsubscribe" }))) return;
+  setBulkBusy(true, `Unsubscribing from ${eligible.length}…`);
+  let res;
+  try { res = await api("/api/bulk", { view: state.view, scope: state.scope, keys: eligible.map((r) => r.key), action: "unsubscribe" }); }
+  catch (e) { toast(e.message); setBulkBusy(false); return; }
+  setBulkBusy(false);
+  const byKey = new Map(eligible.map((r) => [r.key, r]));
+  const count = (m) => res.results.filter((r) => r.method === m).length;
+  const done = res.results.filter((r) => r.method === "one-click" || r.method === "email");
+  const STATUS = { "one-click": ["Unsubscribed", "ok"], email: ["Request emailed", "ok"], link: ["Open page to finish", ""], none: ["Not available", "bad"], error: ["Failed", "bad"] };
+  showDialog({
+    title: "Unsubscribe results",
+    sub: `${done.length} of ${res.results.length} handled automatically`,
+    body: [
+      el("div", { class: "chips" },
+        el("span", { class: "chip" }, el("b", {}, count("one-click")), " one-click"),
+        el("span", { class: "chip" }, el("b", {}, count("email")), " emailed"),
+        el("span", { class: "chip" }, el("b", {}, count("link")), " need you"),
+        count("error") + count("none") ? el("span", { class: "chip" }, el("b", {}, count("error") + count("none")), " failed") : null),
+      ...res.results.map((r) => {
+        const row = byKey.get(r.key), [label, cls] = STATUS[r.method] || [r.method, ""];
+        return el("div", { class: "res" },
+          el("div", { class: "who-n", title: r.message || "" }, bundleTitle(row)[0], el("div", { class: "st " + cls }, label)),
+          r.method === "link" ? el("a", { href: r.url, target: "_blank", rel: "noopener noreferrer" }, "Open page ↗") : el("span"));
+      }),
+    ],
+    actions: [
+      ["Keep messages", () => {}],
+      [`Trash their ${fmtNum(eligible.reduce((a, r) => a + r.n, 0))} messages`, async () => {
+        state.selected = new Map(eligible.map((r) => [r.key, r]));
+        setBulkBusy(true, "Moving to Trash…");
+        try {
+          const t = await api("/api/bulk", { view: state.view, scope: state.scope, keys: eligible.map((r) => r.key), action: "trash" });
+          toast(`Moved ${fmtNum(t.count)} messages to Trash`);
+        } catch (e) { toast(e.message); }
+        state.selected.clear(); setBulkBusy(false);
+        await Promise.all([refreshAll(), refreshStatus()]);
+      }, "danger"],
+    ],
+  });
+  state.selected.clear(); renderBulk(); load();
+}
+
+// In-app confirmation popup. Resolves true when confirmed, false on cancel/Esc/backdrop.
+// body: string (blank-line separated paragraphs; lines starting with "• " become a list) or nodes.
+function ask({ title, body, confirm = "Continue", cancel = "Cancel", danger = false, extra = null }) {
+  const d = $("dlg");
+  const nodes = typeof body === "string"
+    ? body.split("\n\n").map((para) => {
+        const lines = para.split("\n");
+        if (lines.every((l) => l.startsWith("• ") || l.startsWith("…")))
+          return el("ul", { class: "dlg-list" }, lines.map((l) => el("li", {}, l.replace(/^• /, ""))));
+        return el("p", {}, para);
+      })
+    : body;
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = (v) => { if (done) return; done = true; d.close(); resolve(v); };
+    const ok = el("button", { class: "btn primary" + (danger ? " danger-fill" : ""), onclick: () => finish(true) }, confirm);
+    $("dlgTitle").textContent = title; $("dlgSub").textContent = "";
+    $("dlgBody").replaceChildren(...nodes, ...(extra ? [extra] : []));
+    $("dlgFoot").replaceChildren(el("button", { class: "btn", onclick: () => finish(false) }, cancel), ok);
+    d.onclose = () => finish(false);
+    d.oncancel = (e) => { e.preventDefault(); finish(false); };
+    d.onclick = (e) => { if (e.target === d) finish(false); };  // click on backdrop
+    d.showModal();
+    ok.focus();
+  });
+}
+
+function showDialog({ title, sub, body, actions }) {
+  const d = $("dlg");
+  d.onclose = d.oncancel = d.onclick = null;
+  $("dlgTitle").textContent = title; $("dlgSub").textContent = sub || "";
+  $("dlgBody").replaceChildren(...body);
+  $("dlgFoot").replaceChildren(...actions.map(([label, fn, cls]) =>
+    el("button", { class: "btn " + (cls === "danger" ? "primary" : ""), style: cls === "danger" ? "background:var(--danger);border-color:var(--danger)" : "", onclick: () => { d.close(); fn(); } }, label)));
+  d.showModal();
+}
+
+// ---------------------------------------------------------------- customizable dashboard + menu
+const TILES = [["summary", "Summary numbers"], ["senders", "Top senders"], ["years", "Mail by year"],
+  ["ai", "AI categories"], ["gmail", "Gmail categories"]];
+const layout = { tiles: new Set(stored("hiddenTiles", [])), views: new Set(stored("hiddenViews", [])) };
+layout.views.delete("sender");  // Senders is the home view and can't be hidden
+function saveLayout() { store("hiddenTiles", [...layout.tiles]); store("hiddenViews", [...layout.views]); }
+function applyLayout() {
+  document.querySelectorAll("[data-tile]").forEach((node) => { node.hidden = layout.tiles.has(node.dataset.tile); });
+  // In the 2-column chart grid, let a lone last tile use the full width.
+  const visible = [...document.querySelectorAll("#charts > [data-tile]")].filter((n) => !n.hidden);
+  visible.forEach((n, i) => n.classList.toggle("span-all", visible.length % 2 === 1 && i === visible.length - 1));
+  $("charts").hidden = visible.length === 0;
+  if ($("insightsRail")) renderRail();
+  const hidden = layout.tiles.size + layout.views.size;
+  $("customizeBtn").replaceChildren(icon("size"), hidden ? `Customize (${hidden} hidden)` : "Customize");
+  if ($("layoutSummary")) $("layoutSummary").textContent = hidden
+    ? `${layout.tiles.size} dashboard ${layout.tiles.size === 1 ? "tile" : "tiles"} and ${layout.views.size} menu ${layout.views.size === 1 ? "item" : "items"} hidden.`
+    : "Everything is shown. Hide dashboard tiles or left-menu groupings you don't use.";
+}
+function addTileCloseButtons() {
+  document.querySelectorAll("[data-tile]").forEach((node) => {
+    const title = TILES.find(([k]) => k === node.dataset.tile)[1];
+    const x = el("button", { class: "tile-x", type: "button", "aria-label": `Hide ${title}`,
+      onclick: (e) => { e.stopPropagation(); layout.tiles.add(node.dataset.tile); saveLayout(); applyLayout();
+        toast(`${title} hidden. Bring it back with Customize.`); } }, "✕");
+    attachTip(x, [`Hide “${title}”`]);
+    (node.querySelector(".card-h") || node).append(x);
+  });
+}
+async function customizeLayout() {
+  const box = (key, label, checked, locked = false) => el("label", { class: locked ? "locked" : "" },
+    el("input", { type: "checkbox", class: "cb", "data-key": key, checked: checked ? "" : null, disabled: locked ? "" : null }), label);
+  const tiles = el("div", { class: "layout-group" }, el("h4", {}, "Dashboard tiles"),
+    TILES.map(([k, label]) => box(k, label, !layout.tiles.has(k))));
+  const views = el("div", { class: "layout-group" }, el("h4", {}, "Left menu: group by"),
+    VIEWS.map(([k, label]) => box(k, k === "sender" ? `${label} (always shown)` : label, !layout.views.has(k), k === "sender")));
+  if (!(await ask({ title: "Customize dashboard", body: [el("p", {}, "Untick anything you don't use. This is saved in this browser."), tiles, views],
+    confirm: "Save" }))) return;
+  layout.tiles = new Set([...tiles.querySelectorAll("input")].filter((i) => !i.checked).map((i) => i.dataset.key));
+  layout.views = new Set([...views.querySelectorAll("input")].filter((i) => !i.checked && i.dataset.key !== "sender").map((i) => i.dataset.key));
+  saveLayout(); applyLayout();
+  if (layout.views.has(state.view)) setView("sender"); else renderControls();
+}
+
+// ---------------------------------------------------------------- insights panel
+const wideQuery = matchMedia("(min-width: 1181px)");
+// Wide screens remember your choice; on smaller screens it's a drawer that starts closed.
+let insightsOpen = wideQuery.matches ? stored("insightsOpen", true) : false;
+function renderRail() {
+  const tileIcon = { summary: "mail", senders: "sender", years: "year", ai: "ai", gmail: "category" };
+  const open = (tile) => {
+    setInsights(true);
+    const node = tile && document.querySelector(`#insights [data-tile="${tile}"]`);
+    if (node) requestAnimationFrame(() => node.scrollIntoView({ block: "start", behavior: "smooth" }));
+  };
+  const expand = el("button", { class: "ib", type: "button", "aria-label": "Expand insights", onclick: () => open() },
+    icon("chev"));
+  expand.firstChild.style.transform = "rotate(90deg)";
+  attachTip(expand, ["Expand Insights"]);
+  $("insightsRail").replaceChildren(expand,
+    el("button", { class: "rail-label", type: "button", onclick: () => open() }, "Insights"),
+    el("hr"),
+    ...TILES.filter(([k]) => !layout.tiles.has(k)).map(([k, label]) => {
+      const b = el("button", { class: "ib rail-tile", type: "button", "aria-label": label, onclick: () => open(k) }, icon(tileIcon[k]));
+      attachTip(b, [label]);
+      return b;
+    }));
+}
+function setInsights(open, remember = true) {
+  insightsOpen = open;
+  if (remember && wideQuery.matches) store("insightsOpen", open);
+  document.body.classList.toggle("insights-closed", !open);
+  $("insightsBtn").classList.toggle("on", open);
+  $("insightsBtn").setAttribute("aria-expanded", String(open));
+  tip.classList.remove("on");
+}
+wideQuery.addEventListener("change", (e) => setInsights(e.matches ? stored("insightsOpen", true) : false, false));
+
+// ---------------------------------------------------------------- help / guide
+const slug = (t) => t.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+// Small, safe Markdown renderer for GUIDE.md: builds DOM nodes, never parses HTML.
+function mdInline(text) {
+  const out = [];
+  const re = /(\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\([^)\s]+\)|\*[^*\s][^*]*\*)/g;
+  let last = 0, m;
+  while ((m = re.exec(text))) {
+    if (m.index > last) out.push(text.slice(last, m.index));
+    const t = m[0];
+    if (t.startsWith("**")) out.push(el("b", {}, t.slice(2, -2)));
+    else if (t.startsWith("`")) out.push(el("code", {}, t.slice(1, -1)));
+    else if (t.startsWith("[")) {
+      const [, label, href] = t.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+      const safe = /^(https?:|#)/.test(href) ? href : "#";
+      out.push(el("a", safe.startsWith("#") ? { href: safe } : { href: safe, target: "_blank", rel: "noopener noreferrer" }, label));
+    } else out.push(el("i", {}, t.slice(1, -1)));
+    last = m.index + t.length;
+  }
+  if (last < text.length) out.push(text.slice(last));
+  return out;
+}
+function mdRender(md) {
+  const lines = md.replace(/\r/g, "").split("\n"), out = [];
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    if (!line.trim()) { i++; continue; }
+    let m;
+    if ((m = line.match(/^(#{1,3})\s+(.*)/))) {
+      const tag = "h" + m[1].length;
+      out.push(el(tag, { id: tag === "h1" ? null : "help-" + slug(m[2]) }, ...mdInline(m[2]))); i++; continue;
+    }
+    if (line.startsWith("|")) {
+      const rows = [];
+      while (i < lines.length && lines[i].startsWith("|")) { rows.push(lines[i]); i++; }
+      const cells = (r) => r.replace(/^\||\|$/g, "").split("|").map((c) => c.trim());
+      const body = rows.filter((r, k) => k !== 1 || !/^\|?\s*:?-+/.test(r)).slice(1);
+      out.push(el("table", {}, el("thead", {}, el("tr", {}, cells(rows[0]).map((c) => el("th", {}, ...mdInline(c))))),
+        el("tbody", {}, body.map((r) => el("tr", {}, cells(r).map((c) => el("td", {}, ...mdInline(c))))))));
+      continue;
+    }
+    if (/^\s*[-*]\s+/.test(line) || /^\s*\d+\.\s+/.test(line)) {
+      const ordered = /^\s*\d+\./.test(line), list = el(ordered ? "ol" : "ul");
+      while (i < lines.length && (ordered ? /^\s*\d+\.\s+/ : /^\s*[-*]\s+/).test(lines[i])) {
+        list.append(el("li", {}, ...mdInline(lines[i].replace(/^\s*(?:[-*]|\d+\.)\s+/, "")))); i++;
+      }
+      out.push(list); continue;
+    }
+    if (line.startsWith(">")) {
+      const buf = [];
+      while (i < lines.length && lines[i].startsWith(">")) { buf.push(lines[i].replace(/^>\s?/, "")); i++; }
+      out.push(el("blockquote", {}, el("p", {}, ...mdInline(buf.join(" "))))); continue;
+    }
+    const buf = [];
+    while (i < lines.length && lines[i].trim() && !/^(#|\||>|\s*[-*]\s|\s*\d+\.\s)/.test(lines[i])) { buf.push(lines[i]); i++; }
+    out.push(el("p", {}, ...mdInline(buf.join(" "))));
+  }
+  return out;
+}
+// Wrap the guide into sections (one per h2) so search can show/hide whole sections.
+function buildGuide(md) {
+  const body = $("helpBody"), toc = $("helpToc");
+  const sections = []; let current = null;
+  body.replaceChildren();
+  for (const node of mdRender(md)) {
+    if (node.tagName === "H2" || !current) { current = el("section", { class: "help-sec" }); sections.push(current); body.append(current); }
+    current.append(node);
+  }
+  toc.replaceChildren(...[...body.querySelectorAll("h2, h3")].map((h) =>
+    el("a", { href: "#" + h.id, class: h.tagName === "H3" ? "sub" : "", "data-target": h.id,
+      onclick: (e) => { e.preventDefault(); goHelp(h.id.replace(/^help-/, "")); } }, h.textContent)));
+  state.guideLoaded = true;
+}
+function goHelp(section) {
+  const target = section && document.getElementById("help-" + section);
+  document.querySelectorAll("#helpToc a").forEach((a) => a.classList.toggle("on", a.dataset.target === "help-" + section));
+  if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+  else window.scrollTo({ top: 0 });
+  history.replaceState(null, "", section ? "#help/" + section : "#help");
+}
+async function showHelp(section) {
+  showPage("help");
+  if (!state.guideLoaded) {
+    try { buildGuide((await api("/api/guide")).markdown); }
+    catch (e) { $("helpBody").replaceChildren(el("p", { class: "help-empty" }, e.message)); return; }
+  }
+  $("helpSearch").value = ""; filterHelp("");
+  requestAnimationFrame(() => goHelp(section));
+}
+function filterHelp(q) {
+  q = q.trim().toLowerCase();
+  const body = $("helpBody");
+  body.querySelectorAll("mark").forEach((m) => m.replaceWith(m.textContent));
+  let shown = 0;
+  body.querySelectorAll(".help-sec").forEach((sec) => {
+    const hit = !q || sec.textContent.toLowerCase().includes(q);
+    sec.classList.toggle("hidden-by-search", !hit);
+    if (hit) shown++;
+    if (hit && q) highlight(sec, q);
+  });
+  body.querySelector(".help-empty")?.remove();
+  if (!shown) body.append(el("p", { class: "help-empty" }, `Nothing in the guide mentions “${q}”. Try Ask AI for questions about your mailbox.`));
+  document.querySelectorAll("#helpToc a").forEach((a) => {
+    const sec = document.getElementById(a.dataset.target)?.closest(".help-sec");
+    a.hidden = !!sec && sec.classList.contains("hidden-by-search");
+  });
+}
+function highlight(root, q) {
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const hits = [];
+  while (walker.nextNode()) if (walker.currentNode.nodeValue.toLowerCase().includes(q)) hits.push(walker.currentNode);
+  for (const node of hits) {
+    const text = node.nodeValue, parts = [];
+    let from = 0, at;
+    while ((at = text.toLowerCase().indexOf(q, from)) !== -1) {
+      parts.push(text.slice(from, at), el("mark", {}, text.slice(at, at + q.length))); from = at + q.length;
+    }
+    parts.push(text.slice(from));
+    node.replaceWith(...parts);
+  }
+}
+function helpLink(section, label = "How this works") {
+  const a = el("a", { class: "helplink", href: "#help/" + section, "aria-label": label,
+    onclick: (e) => { e.preventDefault(); e.stopPropagation(); showHelp(section); } }, "?");
+  attachTip(a, [label]);
+  return a;
+}
+
+// ---------------------------------------------------------------- pages helper
+function showPage(page) {
+  clearSelection(false);
+  state.page = page;
+  renderControls();
+  window.scrollTo({ top: 0 });
+}
+
+// ---------------------------------------------------------------- account (sign in / out)
+function showAuthBanner(message) {
+  $("authBanner").hidden = false;
+  if (message) $("authBannerText").replaceChildren(el("b", {}, message));
+}
+async function initAuth() {
+  const q = new URLSearchParams(location.search);
+  if (q.has("signed_in")) toast(q.get("signed_in") === "switched" ? "Signed in with a different account; its mail will load when you sync." : "Signed in to Gmail");
+  if (q.has("signin_error")) toast("Sign-in failed: " + q.get("signin_error"));
+  if ([...q.keys()].length) history.replaceState(null, "", "/");
+  const a = await api("/api/auth").catch(() => null);
+  if (!a) return;
+  state.auth = a;
+  $("authBanner").hidden = a.signed_in && !a.demo;
+  if (a.demo) {
+    $("authBannerText").replaceChildren(el("b", {}, "Demo mailbox."), " Everything here is made up, and actions that would change Gmail are turned off.");
+    $("authBannerBtn").hidden = true;
+  }
+  if (!a.signed_in) {
+    $("authBannerText").replaceChildren(el("b", {}, a.expired ? "Your Google sign-in expired." : "You're not signed in to Gmail."),
+      a.has_client ? " Sign in to sync and clean up your mail." : " Add your Google OAuth client in Settings, then sign in.");
+    $("authBannerBtn").textContent = a.has_client ? "Sign in with Google" : "Open Settings";
+    $("authBannerBtn").onclick = a.has_client ? null : (e) => { e.preventDefault(); showSettings(); };
+  }
+  renderSideAccount();
+  if (q.get("signed_in") === "switched") startSync({ query: "is:unread" });
+}
+function renderSideAccount() {
+  const a = state.auth || {};
+  $("account").textContent = a.signed_in ? (a.email || "Signed in") : "Not signed in";
+  if (a.demo) { $("sideAuth").replaceChildren("Demo mailbox"); return; }
+  const link = a.signed_in
+    ? el("a", { href: "#", onclick: (e) => { e.preventDefault(); signOut(); } }, "Sign out")
+    : el("a", { href: a.has_client ? "/auth/start" : "#", onclick: a.has_client ? null : (e) => { e.preventDefault(); showSettings(); } }, "Sign in");
+  $("sideAuth").replaceChildren(link);
+}
+async function signOut() {
+  const wipe = el("input", { type: "checkbox", id: "wipeData" });
+  const extra = el("label", { class: "inline", style: "margin-top:4px;font-size:13px;cursor:pointer" }, wipe,
+    "Also delete emliq's cached mail data on this computer (messages, AI categories, activity)");
+  if (!(await ask({ title: "Sign out of Gmail?", confirm: "Sign out",
+    body: `emliq forgets your sign-in${state.auth?.email ? " for " + state.auth.email : ""} and removes its access to your Google account. Nothing in Gmail changes.`,
+    extra }))) return;
+  try {
+    await api("/api/auth/signout", { revoke: true, clear_data: wipe.checked });
+    toast(wipe.checked ? "Signed out and cached data deleted" : "Signed out");
+    await initAuth();
+    await Promise.all([refreshStatus(), refreshAll()]);
+  } catch (e) { toast(e.message); }
+}
+function renderAccountCard() {
+  const a = state.auth || {};
+  $("accountStatus").replaceChildren(el("span", { class: "status" + (a.signed_in ? " ok" : "") }, el("span", { class: "d" }),
+    a.signed_in ? `Signed in as ${a.email || "your Google account"}` : a.expired ? "Sign-in expired" : "Not signed in"));
+  $("accountActions").replaceChildren(...(a.signed_in
+    ? [el("button", { class: "btn", onclick: signOut }, "Sign out"),
+       el("a", { class: "btn", href: "/auth/start", title: "Signing in with a different account replaces this account's cached data" }, "Switch account")]
+    : a.has_client ? [el("a", { class: "btn primary", href: "/auth/start" }, "Sign in with Google")] : []));
+  $("clientSetup").hidden = !!a.has_client;
+}
+
+// ---------------------------------------------------------------- search
+async function runSearch(query) {
+  query = (query || "").trim();
+  if (!query) return;
+  state.searchQ = query;
+  if (state.page !== "search") showPage("search"); else renderControls();
+  $("srSenders").replaceChildren(el("div", { class: "skel", style: "width:40%;margin:8px 0" }));
+  $("srMessages").replaceChildren(el("div", { class: "skel", style: "width:55%;margin:8px 0" }));
+  let r;
+  try { r = await api("/api/search?" + new URLSearchParams({ q: query, scope: state.scope })); }
+  catch (e) { $("srSenders").replaceChildren(el("div", { class: "muted" }, e.message)); $("srMessages").replaceChildren(); return; }
+  $("srSendersHint").textContent = `${fmtNum(r.total_senders)} matching`;
+  $("srMsgHint").textContent = `${fmtNum(r.total_messages)} matching` + (r.total_messages > r.messages.length ? ` · newest ${r.messages.length} shown` : "");
+  $("srAllSenders").hidden = !r.total_senders;
+  const labels = { unsubscribe: "Unsubscribe?", archive: "Archive?", keep: "Keep" };
+  $("srSenders").replaceChildren(...(r.senders.length ? r.senders.map((x) => {
+    const name = x.label || x.key;
+    return el("div", { class: "srow", role: "button", tabindex: "0", onclick: () => setView("sender", null, { q: x.key }) },
+      el("span", { class: "avatar sm", style: `background:${avatarColor(x.key)}` }, name.trim()[0]?.toUpperCase() || "?"),
+      el("div", { class: "who-t" }, el("div", { class: "name" }, name), el("div", { class: "subline" }, x.key)),
+      x.ai_action ? el("span", { class: "ai-tag " + x.ai_action }, labels[x.ai_action]) : el("span"),
+      el("span", { class: "scount" }, fmtNum(x.n)), el("span", { class: "chev-s" }, icon("chev")));
+  }) : [el("div", { class: "muted", style: "padding:8px 0" }, "No senders match.")]));
+  $("srMessages").replaceChildren(...(r.messages.length ? messageRows(r.messages, true) : [el("div", { class: "muted", style: "padding:8px 0" }, "No messages match.")]));
+}
+
+// ---------------------------------------------------------------- ask AI
+const ASK_SUGGESTIONS = [
+  "Which mailing lists do I never read?",
+  "What's taking up the most space?",
+  "Who sent me the most email this month?",
+  "Which senders haven't emailed me in 6 months?",
+  "Summarize the AI's unsubscribe suggestions",
+  "Anything from a real person I haven't read this week?",
+];
+function showAsk(question) {
+  showPage("ask");
+  renderThread();
+  if (question) askQuestion(question); else $("askInput").focus();
+}
+function formatAnswer(text) {
+  // Minimal, safe formatting: paragraphs, "- " bullets and **bold**. No HTML is ever injected.
+  const inline = (line) => line.replace(/\[([^\]]+)\]\([^)]*\)/g, "$1").split(/(\*\*[^*]+\*\*)/).map((part) =>
+    part.startsWith("**") && part.endsWith("**") && part.length > 4 ? el("b", {}, part.slice(2, -2)) : part);
+  const out = []; let list = null;
+  // Models sometimes emit HTML-ish markup; drop tag-only lines and strip stray tags (text is never parsed as HTML).
+  for (const raw of text.split("\n")) {
+    if (/^\s*<(\w+)[^>]*>.*<\/\1>\s*$/.test(raw) && /<\/?(button|a|div|span)\b/i.test(raw)) continue;
+    const line = raw.replace(/<\/?[a-z][^>]*>/gi, "").trim();
+    const bullet = line.match(/^(?:[-*•]|\d+[.)])\s+(.*)/);
+    if (bullet) { if (!list) { list = el("ul"); out.push(list); } list.append(el("li", {}, inline(bullet[1]))); continue; }
+    list = null;
+    if (line) out.push(el("p", {}, inline(line)));
+  }
+  return out;
+}
+async function renderThread() {
+  const thread = $("askThread");
+  let est = state.askEst;
+  if (!est) { try { est = state.askEst = await api("/api/ai/estimate"); } catch { est = {}; } }
+  const local = est.provider === "ollama";
+  $("askNote").textContent = est.ready
+    ? (local ? `Using ${est.model} on this Mac. Free; nothing leaves your computer.` :
+       `Using ${est.model}. Each question costs a few cents; sender names, counts and subject lines it looks up are sent to Anthropic.`) +
+      " The AI can look things up but never changes your mail."
+    : (est.reason || "");
+  $("askSend").disabled = !est.ready;
+  if (!state.chat.length) {
+    thread.replaceChildren(el("div", { class: "ask-empty" }, el("h3", {}, "Ask about your mailbox"),
+      "It looks things up in emliq's copy of your mail and answers in plain language, with buttons to open the senders it finds."));
+  } else {
+    thread.replaceChildren(...state.chat.flatMap((t) => {
+      const q = el("div", { class: "turn-q" }, t.q);
+      let a;
+      if (t.pending) {
+        a = el("div", { class: "turn-a" }, el("span", { class: "thinking" }, el("span", { class: "spin" }),
+          `Thinking… ${Math.round((Date.now() - t.started) / 1000)}s`));
+      } else if (t.error) {
+        a = el("div", { class: "turn-a err" }, t.error);
+      } else {
+        a = el("div", { class: "turn-a" }, ...formatAnswer(t.a),
+          t.actions?.length ? el("div", { class: "turn-acts" }, t.actions.map((x) =>
+            el("button", { class: "btn sm primary", onclick: () => openSenders(x.emails, x.title) }, x.title + " →"))) : null,
+          el("div", { class: "turn-meta" }, `${t.model} · ${t.seconds}s` + (t.steps?.length ? ` · looked up ${t.steps.length} ${t.steps.length === 1 ? "thing" : "things"}` : "")));
+      }
+      return [q, a];
+    }));
+  }
+  const busy = state.chat.some((t) => t.pending);
+  $("askSuggest").replaceChildren(...(state.chat.length > 2 || busy ? [] : ASK_SUGGESTIONS.map((q) =>
+    el("button", { type: "button", onclick: () => askQuestion(q), disabled: !est.ready ? "" : null }, q))));
+  thread.lastElementChild?.scrollIntoView({ block: "nearest" });
+}
+async function askQuestion(question) {
+  question = (question || "").trim();
+  if (!question || state.chat.some((t) => t.pending)) return;
+  const history = state.chat.filter((t) => t.a).slice(-4).map((t) => ({ q: t.q, a: t.a }));
+  const turn = { q: question, pending: true, started: Date.now() };
+  state.chat.push(turn);
+  $("askInput").value = "";
+  if (state.page !== "ask") showPage("ask");
+  renderThread();
+  const tick = setInterval(() => state.page === "ask" && renderThread(), 1000);
+  try {
+    const r = await api("/api/ask", { question, history });
+    Object.assign(turn, { a: r.answer, actions: r.actions, steps: r.steps, model: r.model, seconds: r.seconds });
+  }
+  catch (e) { turn.error = e.message; }
+  finally { clearInterval(tick); turn.pending = false; state.askEst = null; if (state.page === "ask") renderThread(); }
+}
+async function openSenders(emails, title) {
+  // Load all of them (they arrive preselected), then show the filtered sender list.
+  let rows = [];
+  try {
+    for (let page = 1; page <= 2; page++) {
+      const r = await api("/api/bundles?" + new URLSearchParams({ view: "sender", scope: "all", emails: emails.join(","), per_page: 100, page }));
+      rows = rows.concat(r.bundles);
+      if (rows.length >= r.total) break;
+    }
+  } catch (e) { toast(e.message); return; }
+  state.scope = "all";
+  await setView("sender", null, { emails, title });
+  for (const r of rows) state.selected.set(r.key, r);
+  document.querySelectorAll("tr.bundle").forEach((tr) => state.selected.has(tr.dataset.key) && setRowSelected(tr, true));
+  renderBulk();
+  document.querySelector(".table-card").scrollIntoView({ behavior: "smooth" });
+}
+
+// ---------------------------------------------------------------- activity page
+function showActivity() {
+  state.logPage = 1;
+  showPage("activity");
+  return loadActivity();
+}
+const ACT = {
+  trash: ["Trashed", "trash", "bad"], archive: ["Archived", "archive", "good"], archive_read: ["Archived", "archive", "good"],
+  read: ["Marked read", "read", "good"], block: ["Blocked", "block", "bad"], unsubscribe: ["Unsubscribed", "unsub", "bad"],
+  sync: ["Synced", "sync", ""], categorize: ["Categorized", "ai", "good"], model_download: ["Downloaded model", "ai", ""],
+  ask: ["Asked AI", "ai", ""], sign_in: ["Signed in", "mail", "good"], sign_out: ["Signed out", "mail", ""],
+};
+const UNSUB = { "one-click": "one-click", email: "request emailed", link: "needs you to open their page", none: "no unsubscribe option", error: "failed" };
+function relTime(ts) {
+  const d = Date.now() / 1000 - ts;
+  if (d < 60) return "just now";
+  if (d < 3600) return `${Math.floor(d / 60)} min ago`;
+  if (d < 86400) return `${Math.floor(d / 3600)} h ago`;
+  return new Date(ts * 1000).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+}
+
+async function loadActivity() {
+  let a;
+  try { a = await api("/api/activity?" + new URLSearchParams({ page: state.logPage, per_page: state.perPage })); }
+  catch (e) { toast(e.message); return; }
+  const m = a.summary;
+  const tiles = [
+    { icon: "trash", label: "Moved to Trash", value: fmtCompact(m.trashed), foot: `${fmtBytes(m.bytes_freed)} of storage freed` },
+    { icon: "archive", label: "Archived", value: fmtCompact(m.archived), foot: `${fmtCompact(m.marked_read)} more marked read` },
+    { icon: "unsub", label: "Unsubscribed", value: fmtNum(m.unsubscribed), foot: "senders" },
+    { icon: "block", label: "Filters created", value: fmtNum(m.filters), foot: m.since ? "since " + new Date(m.since * 1000).toLocaleDateString() : "nothing yet" },
+  ];
+  $("actKpis").replaceChildren(...tiles.map((t) => el("div", { class: "card kpi" },
+    el("div", { class: "label" }, icon(t.icon), t.label), el("div", { class: "value" }, t.value), el("div", { class: "foot" }, t.foot))));
+  renderHistory(a.history);
+  renderDaily(a.daily);
+  renderLog(a.timeline);
+}
+
+function renderHistory(h) {
+  const box = $("chartHistory");
+  if (h.length < 2) {
+    box.replaceChildren(el("div", { class: "empty", style: "border:0" }, "This fills in as you sync and clean up."));
+    return;
+  }
+  const W = 600, H = 170, pad = { l: 4, r: 4, t: 8, b: 20 };
+  const series = [["inbox", "In inbox", "--series-1"], ["unread", "Unread", "--series-2"]];
+  const t0 = h[0].ts, t1 = h[h.length - 1].ts;
+  const vmax = niceMax(Math.max(1, ...h.map((r) => Math.max(r.inbox, r.unread))));
+  const x = (ts) => pad.l + ((ts - t0) / Math.max(1, t1 - t0)) * (W - pad.l - pad.r);
+  const y = (v) => pad.t + (1 - v / vmax) * (H - pad.t - pad.b);
+  const NS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(NS, "svg");
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`); svg.setAttribute("preserveAspectRatio", "none");
+  const mk = (tag, attrs) => { const n = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v); svg.append(n); return n; };
+  for (const f of [0, 0.5, 1]) mk("line", { x1: 0, x2: W, y1: y(vmax * f), y2: y(vmax * f), stroke: "var(--line)", "stroke-dasharray": f ? "3 3" : "", "vector-effect": "non-scaling-stroke" });
+  for (const [key, , color] of series) {
+    mk("polyline", { points: h.map((r) => `${x(r.ts)},${y(r[key])}`).join(" "), fill: "none", stroke: `var(${color})`,
+      "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round", "vector-effect": "non-scaling-stroke" });
+  }
+  const cross = mk("line", { y1: pad.t, y2: H - pad.b, stroke: "var(--line-strong)", "vector-effect": "non-scaling-stroke", visibility: "hidden" });
+  const last = h[h.length - 1];
+  const wrap = el("div", { class: "line-wrap" });
+  wrap.append(svg);
+  svg.addEventListener("mousemove", (e) => {
+    const rect = svg.getBoundingClientRect(), ts = t0 + ((e.clientX - rect.left) / rect.width) * (t1 - t0);
+    const r = h.reduce((a, b) => Math.abs(b.ts - ts) < Math.abs(a.ts - ts) ? b : a);
+    cross.setAttribute("x1", x(r.ts)); cross.setAttribute("x2", x(r.ts)); cross.setAttribute("visibility", "visible");
+    tip.replaceChildren(el("b", {}, new Date(r.ts * 1000).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })),
+      el("div", {}, `In inbox: ${fmtNum(r.inbox)}`), el("div", {}, `Unread: ${fmtNum(r.unread)}`));
+    tip.classList.add("on");
+    tip.style.left = Math.min(e.clientX + 12, innerWidth - tip.offsetWidth - 8) + "px"; tip.style.top = (e.clientY + 14) + "px";
+  });
+  svg.addEventListener("mouseleave", () => { tip.classList.remove("on"); cross.setAttribute("visibility", "hidden"); });
+  box.replaceChildren(
+    el("div", { class: "line-legend" }, series.map(([key, label, color]) =>
+      el("span", {}, el("i", { style: `background:var(${color})` }), `${label} · ${fmtNum(last[key])}`))),
+    wrap,
+    el("div", { class: "xlabels" }, el("span", { style: "text-align:left" }, new Date(t0 * 1000).toLocaleDateString()),
+      el("span", { style: "text-align:right" }, new Date(t1 * 1000).toLocaleDateString())));
+}
+
+function renderDaily(days) {
+  const box = $("chartDaily"), max = niceMax(Math.max(1, ...days.map((d) => d.messages)));
+  if (!days.some((d) => d.messages)) {
+    box.replaceChildren(el("div", { class: "empty", style: "border:0" }, "Nothing cleaned in the last 30 days yet."));
+    return;
+  }
+  box.replaceChildren(
+    el("div", { class: "cols" },
+      [0.5, 1].map((f) => el("div", { class: "gl", style: `bottom:${f * 100}%` }, el("span", {}, fmtCompact(max * f)))),
+      days.map((d) => {
+        const c = el("div", { class: "col" }, el("i", { style: `height:${(d.messages / max) * 100}%;${d.messages ? "" : "min-height:0"}` }));
+        attachTip(c, [new Date(d.day + "T12:00").toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" }), `${fmtNum(d.messages)} messages`]);
+        return c;
+      })),
+    el("div", { class: "xlabels" }, days.map((d, i) => el("span", {}, i % 7 === 0 ? new Date(d.day + "T12:00").toLocaleDateString(undefined, { month: "short", day: "numeric" }) : ""))));
+}
+
+function renderLog(t) {
+  $("logSummary").textContent = `${fmtNum(t.total)} events`;
+  if (!t.items.length) {
+    $("logContent").replaceChildren(el("div", { class: "empty" }, "No activity yet. Actions you take on bundles show up here."));
+    $("logPager").replaceChildren();
+    return;
+  }
+  $("logContent").replaceChildren(el("table", {},
+    el("thead", {}, el("tr", {}, el("th", {}, "Action"), el("th", {}, "What"), el("th", { class: "num" }, "Messages"),
+      el("th", { class: "num hide-sm" }, "Size"), el("th", { class: "hide-sm" }, "When"))),
+    el("tbody", {}, t.items.map((r) => {
+      let [verb, ic, tone] = ACT[r.action] || [cap(r.action), "dot", ""];
+      if (r.action === "unsubscribe" && ["none", "error"].includes(r.detail?.method)) [verb, tone] = ["Unsubscribe failed", ""];
+      let what = r.label || (r.action === "sync" ? (r.detail?.query ? `Loaded “${r.detail.query}”` : "Mailbox") : "");
+      let sub = r.view ? VIEWS.find(([k]) => k === r.view)?.[1] : null;
+      if (r.action === "unsubscribe" && r.detail) sub = UNSUB[r.detail.method] || r.detail.method;
+      if (r.action === "categorize" && r.detail) { what = `${fmtNum(r.detail.senders)} senders`; sub = r.detail.model; }
+      return el("tr", {},
+        el("td", {}, el("span", { class: "log-act" }, el("span", { class: "dot " + tone }, icon(ic)), verb)),
+        el("td", {}, el("div", { class: "name" }, what), sub ? el("div", { class: "subline" }, sub) : null),
+        el("td", { class: "num" }, r.action === "unsubscribe" || r.action === "categorize" ? "" : fmtNum(r.messages)),
+        el("td", { class: "num hide-sm nowrap" }, r.bytes ? fmtBytes(r.bytes) : ""),
+        el("td", { class: "hide-sm muted nowrap", title: new Date(r.ts * 1000).toLocaleString() }, relTime(r.ts)));
+    }))));
+  renderPager($("logPager"), t.total, t.page, t.per_page, (page, per) => {
+    if (per !== state.perPage) { state.perPage = per; store("perPage", per); page = 1; }
+    state.logPage = page; loadActivity();
+  });
+}
+
+// ---------------------------------------------------------------- actions
+const LABELS = { read: "Marked read", archive: "Archived", trash: "Moved to Trash" };
+async function act(r, action, button, confirmed = false) {
+  const title = bundleTitle(r)[0];
+  if (!confirmed && action === "trash" && !(await ask({ title: `Move ${fmtNum(r.n)} messages to Trash?`,
+    body: `From “${title}”. Gmail empties Trash after 30 days, so you can still recover them until then.`, confirm: "Move to Trash", danger: true }))) return;
+  if (!confirmed && action === "archive" && r.n > 50 && !(await ask({ title: `Archive ${fmtNum(r.n)} messages?`,
+    body: `From “${title}”. They leave the inbox but stay searchable in All Mail.`, confirm: "Archive" }))) return;
+  button.disabled = true;
+  try {
+    const { count } = await api("/api/action", { view: state.view, scope: state.scope, key: r.key, action });
+    toast(`${LABELS[action]}: ${fmtNum(count)} messages`);
+    await Promise.all([refreshAll(), refreshStatus()]);
+  } catch (e) { toast(e.message); button.disabled = false; }
+}
+async function unsubscribe(r, button) {
+  const title = bundleTitle(r)[0];
+  if (!(await ask({ title: `Unsubscribe from “${title}”?`,
+    body: "emliq uses one-click unsubscribe if the sender supports it, otherwise sends an unsubscribe email from your account, otherwise gives you their unsubscribe page to open.",
+    confirm: "Unsubscribe" }))) return;
+  button.disabled = true;
+  try {
+    const res = await api("/api/unsubscribe", { view: state.view, scope: state.scope, key: r.key });
+    if (res.method === "link") {
+      // A real link (not window.open) so the popup blocker never eats it.
+      const link = el("a", { class: "btn primary", href: res.url, target: "_blank", rel: "noopener noreferrer" }, "Open unsubscribe page ↗");
+      await ask({ title: "Finish on their website", confirm: "Done", cancel: "Close",
+        body: [el("p", {}, `“${title}” only offers a web page to unsubscribe. Open it and follow their steps.`),
+               el("span", { class: "dlg-link" }, res.url)],
+        extra: el("p", { style: "margin-top:12px" }, link) });
+    } else toast(res.message);
+    if (res.method !== "none" && await ask({ title: `Also trash their ${fmtNum(r.n)} messages?`,
+      body: `The messages already in your mailbox from “${title}” can go to Trash now. Recoverable for 30 days.`,
+      confirm: "Move to Trash", cancel: "Keep them", danger: true })) await act(r, "trash", button, true);
+  } catch (e) { toast(e.message); }
+  button.disabled = false;
+}
+async function block(r, button) {
+  const title = bundleTitle(r)[0];
+  const how = state.view === "subject" ? "with this exact subject" : `from “${title}”`;
+  if (!(await ask({ title: `Block mail ${how}?`,
+    body: `Creates a Gmail filter so future messages skip the inbox (archived and marked read), and archives the ${fmtNum(r.n)} existing ones.\n\nUndo anytime in Gmail → Settings → Filters.`,
+    confirm: "Block", danger: true }))) return;
+  button.disabled = true;
+  try {
+    const res = await api("/api/block", { view: state.view, scope: state.scope, key: r.key, mode: "archive" });
+    toast(`Gmail filter created · ${fmtNum(res.count)} existing messages archived`);
+    await Promise.all([refreshAll(), refreshStatus()]);
+  } catch (e) { toast(e.message); button.disabled = false; }
+}
+
+let searchTimer;
+$("search").addEventListener("input", (e) => { clearTimeout(searchTimer); searchTimer = setTimeout(() => { state.q = e.target.value.trim(); state.pageNum = 1; load(); }, 250); });
+$("sort").addEventListener("change", (e) => { state.sort = e.target.value; state.pageNum = 1; load(); });
+$("syncBtn").addEventListener("click", () => startSync());
+$("keyForm").addEventListener("submit", saveKey);
+$("aiStop").addEventListener("click", async () => {
+  $("aiStop").disabled = true;
+  try { const r = await api("/api/ai/stop", {}); renderAi(r.ai); } catch (e) { toast(e.message); $("aiStop").disabled = false; }
+});
+$("settingsBtn").addEventListener("click", showSettings);
+$("helpSearch").addEventListener("input", (e) => filterHelp(e.target.value));
+addEventListener("keydown", (e) => {
+  if (e.key === "?" && !e.metaKey && !e.ctrlKey && !/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName) && !$("dlg").open) {
+    e.preventDefault(); showHelp();
+  }
+});
+// Contextual "?" links next to things people ask about.
+document.querySelector("#settingsPage #accountCard h2")?.append(helpLink("connect-your-gmail", "How to connect Gmail"));
+document.querySelector("#settingsPage .set-card h2 + p")?.closest(".set-card")?.querySelector("h2")?.append(helpLink("choosing-an-ai-provider", "Choosing an AI provider"));
+document.querySelector("#aiChartCard .card-h h2")?.append(helpLink("ai-categories", "How AI categories work"));
+document.querySelector("#askNote")?.before(el("div", { style: "padding:0 18px 6px" }, helpLink("ask-ai", "Tips for Ask AI")));
+$("customizeBtn").addEventListener("click", customizeLayout);
+$("insightsBtn").addEventListener("click", () => setInsights(!insightsOpen));
+$("insightsClose").addEventListener("click", () => setInsights(false));
+$("insightsBackdrop").addEventListener("click", () => setInsights(false));
+$("customizeBtn2").addEventListener("click", customizeLayout);
+$("omni").addEventListener("submit", (e) => { e.preventDefault(); runSearch($("omniInput").value); });
+$("omniAsk").addEventListener("click", () => { const q = $("omniInput").value.trim(); $("omniInput").value = ""; showAsk(q || undefined); });
+$("askForm").addEventListener("submit", (e) => { e.preventDefault(); askQuestion($("askInput").value); });
+$("askInput").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); askQuestion($("askInput").value); } });
+$("srAllSenders").addEventListener("click", () => setView("sender", null, { q: state.searchQ }));
+$("srAsk").addEventListener("click", () => showAsk(`Tell me about my email matching “${state.searchQ}”`));
+$("emailsChipX").addEventListener("click", () => setView("sender"));
+$("clientFile").addEventListener("change", async (e) => {
+  const f = e.target.files[0]; if (!f) return;
+  $("accountErr").textContent = "";
+  try { await api("/api/auth/client", { json: await f.text() }); toast("Google client saved. Now sign in."); await loadSettings(); await initAuth(); }
+  catch (err) { $("accountErr").textContent = err.message; }
+  e.target.value = "";
+});
+$("homeLink").addEventListener("click", (e) => {
+  e.preventDefault();
+  state.aiAction = state.aiCategory = "";
+  setView("sender").then(() => window.scrollTo({ top: 0, behavior: "smooth" }));
+  if (state.page === "dash") loadOverview().catch(() => {});
+});
+document.querySelectorAll("#providerSeg button").forEach((b) => b.addEventListener("click", () => saveAi({ provider: b.dataset.provider })));
+$("keyRemove").addEventListener("click", removeKey);
+AI_CATEGORIES.forEach((c) => $("aiCategory").append(el("option", { value: c }, c)));
+$("aiAction").addEventListener("change", (e) => { state.aiAction = e.target.value; state.pageNum = 1; clearSelection(false); load(); });
+$("aiCategory").addEventListener("change", (e) => { state.aiCategory = e.target.value; state.pageNum = 1; clearSelection(false); load(); });
+document.querySelectorAll("[data-bulk]").forEach((b) => b.addEventListener("click", () => bulk(b.dataset.bulk)));
+$("bulkClear").addEventListener("click", () => clearSelection());
+$("unreadBtn").addEventListener("click", () => startSync({ query: "is:unread" }));
+
+async function initVersion() {
+  let v;
+  try { v = await api("/api/version"); } catch { return; }
+  const btn = $("versionBtn");
+  const paint = () => btn.replaceChildren(...(stored("seenVersion", null) !== v.version ? [el("span", { class: "new" })] : []), "v" + v.version);
+  paint(); btn.hidden = false;
+  btn.onclick = () => {
+    store("seenVersion", v.version); paint();
+    showDialog({
+      title: "What's new in emliq", sub: `You're on version ${v.version}`,
+      body: [el("div", { class: "releases" }, v.releases.map((r) => el("section", { class: "release" },
+        el("h4", {}, "v" + r.version, el("span", { class: "when" }, r.date ? new Date(r.date + "T12:00").toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : ""),
+          r.version === v.version ? el("span", { class: "cur" }, "Current") : null),
+        el("ul", {}, r.changes.map((c) => el("li", {}, c))))))],
+      actions: [["Close", () => {}]],
+    });
+  };
+}
+
+// The floating version badge steps aside while scrolling down so it never covers row buttons.
+let lastY = scrollY;
+addEventListener("scroll", () => {
+  const down = scrollY > lastY + 4, up = scrollY < lastY - 4;
+  if (down && scrollY > 120) $("versionBtn").classList.add("away");
+  else if (up || scrollY < 120) $("versionBtn").classList.remove("away");
+  if (down || up) lastY = scrollY;
+}, { passive: true });
+
+addTileCloseButtons();
+applyLayout();
+setInsights(insightsOpen, false);
+if (location.hash.startsWith("#help")) setTimeout(() => showHelp(location.hash.split("/")[1]), 0);
+renderControls();
+initVersion();
+initAuth();
+refreshAll();
+pollSync();
+</script>
+</body>
+</html>

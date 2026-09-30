@@ -1,0 +1,20 @@
+services:
+  emliq:
+    build: .
+    image: emliq
+    container_name: emliq
+    restart: unless-stopped
+    # Ports are bound to 127.0.0.1 only: emliq has no login of its own, so
+    # anyone who can reach it can act on your mailbox.
+    ports:
+      - "127.0.0.1:8787:8787"
+      - "127.0.0.1:8765:8765"
+    environment:
+      # Optional: enables "Categorize senders" (AI categories). Read from your shell or a .env file.
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      # Ollama running on the host machine (for local AI categories).
+      OLLAMA_HOST: ${OLLAMA_HOST:-http://host.docker.internal:11434}
+    volumes:
+      # credentials.json, token.json and the cache. Defaults to the same folder the
+      # local install uses; set EMLIQ_DATA to keep Docker's copy separate.
+      - ${EMLIQ_DATA:-${HOME}/.emliq}:/data
