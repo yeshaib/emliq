@@ -193,6 +193,11 @@ actions._one_click = lambda url: None
 res = actions.unsubscribe_many(conn2, fake, "sender", ["shipment-tracking@amazon.com", "news@cafe.fr", "mom@gmail.com"], "all")
 print("bulk unsub", [(r["key"], r["method"]) for r in res])
 assert [r["method"] for r in res] == ["one-click", "link", "none"]
+# report as spam: leaves the inbox, goes to Spam, disappears from bundles
+n = actions.apply_many(conn2, fake, "sender", ["messages-noreply@linkedin.com"], "all", "spam")
+assert n > 0 and not bundles.bundle_ids(conn2, "sender", "messages-noreply@linkedin.com", "all")
+assert all("SPAM" in m["labelIds"] and "INBOX" not in m["labelIds"]
+           for m in fake.msgs.values() if "linkedin" in m["payload"]["headers"][0]["value"])
 print("BULK OK")
 
 # ---- pagination

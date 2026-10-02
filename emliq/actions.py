@@ -19,6 +19,8 @@ LABEL_ACTIONS = {
     "read": ((), ("UNREAD",)),
     "archive_read": ((), ("INBOX", "UNREAD")),
     "trash": (("TRASH",), ()),
+    # Same as Gmail's "Report spam": moves to Spam and teaches Gmail to filter the sender.
+    "spam": (("SPAM",), ("INBOX",)),
 }
 
 

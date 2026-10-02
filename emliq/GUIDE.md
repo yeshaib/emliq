@@ -84,7 +84,7 @@ by most messages, largest, most unread or most recent. Long lists are split into
 - The checkbox at the top of the list selects the whole page.
 
 Selections stay when you change pages. A bar at the bottom shows how many bundles and messages
-you've picked, with **Mark read**, **Archive**, **Unsubscribe**, **Block** and **Trash**.
+you've picked, with **Mark read**, **Archive**, **Unsubscribe**, **Block**, **Spam** and **Trash**.
 
 ## What each action does
 
@@ -97,6 +97,7 @@ Every action asks you to confirm first.
 | Trash | Moves them to Gmail's Trash, where you can recover them for 30 days |
 | Unsubscribe | Unsubscribes you from the sender's mailing list (see below) |
 | Block | Creates a Gmail filter so future mail from the sender skips your inbox |
+| Spam | Same as Gmail's "Report spam": moves the mail to Spam and teaches Gmail to filter the sender |
 
 emliq never permanently deletes mail. Gmail empties its Trash by itself after 30 days.
 
@@ -110,6 +111,10 @@ emliq tries, in order:
 
 Afterwards emliq offers to move that sender's existing messages to Trash. When you unsubscribe
 from several senders at once, a results window shows what happened for each one.
+
+Some senders don't offer any way to unsubscribe. If your selection includes them, the same popup
+lists each one with a choice: **Trash** (the default), **Spam** or **Leave**. Use **Set all** to
+choose the same for every one of them.
 
 > Unsubscribing asks the sender to stop. Most comply within a few days; for any that don't, use Block.
 

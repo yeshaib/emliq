@@ -53,7 +53,7 @@ def daily(conn, days=30):
     start = int(time.time()) - days * 86400
     rows = dict(conn.execute(
         f"""SELECT date(ts, 'unixepoch', 'localtime') AS d, SUM(messages) FROM activity
-            WHERE ts >= ? AND action IN ('trash', 'archive', 'archive_read', 'read', 'block')
+            WHERE ts >= ? AND action IN ('trash', 'archive', 'archive_read', 'read', 'block', 'spam')
             GROUP BY d""",
         (start,),
     ).fetchall())

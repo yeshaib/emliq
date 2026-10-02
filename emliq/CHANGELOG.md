@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.0 — 2026-10-01
+- Bulk Unsubscribe handles senders with no unsubscribe option: choose Trash (default), Spam or Leave for each one, or set all at once
+- New Spam action in the bulk bar, the same as Gmail's "Report spam"
+- Errors during bulk unsubscribe stay visible and keep your selection
+
 ## 0.7.1 — 2026-09-30
 - New screenshots and feature list in the README
 - Neutral wording for the suggested AI question about unsubscribe suggestions

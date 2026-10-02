@@ -439,6 +439,12 @@
   .chips { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0 4px; }
   .chip { font-size: 12px; padding: 3px 9px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--line); }
   .chip b { font-weight: 650; }
+  .fates { display: flex; flex-direction: column; gap: 2px; margin: 4px 0 6px; max-height: 260px; overflow-y: auto; }
+  .fate { display: flex; align-items: center; gap: 10px; padding: 5px 0; border-top: 1px solid var(--line); }
+  .fate-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; color: var(--text); }
+  .seg.seg-sm button { padding: 3px 9px; font-size: 12px; }
+  .seg.seg-sm button.on.trash { color: var(--danger); }
+  .fate-all { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--muted); margin-top: 2px; }
   .res { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); font-size: 13px; }
   .res .who-n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .res .st { font-size: 12px; color: var(--muted); white-space: nowrap; }
@@ -620,6 +626,7 @@
       <button class="btn sm" data-bulk="archive">Archive</button>
       <button class="btn sm" data-bulk="unsubscribe">Unsubscribe</button>
       <button class="btn sm" data-bulk="block">Block</button>
+      <button class="btn sm" data-bulk="spam">Spam</button>
       <button class="btn sm danger" data-bulk="trash">Trash</button>
       <button class="x" id="bulkClear" aria-label="Clear selection">✕</button>
     </div>
@@ -1550,7 +1557,7 @@ function renderBulk() {
     ...(n < 3 ? [el("div", { class: "hint" }, "Click rows to add · Shift-click for a range")] : []));
   const btn = (a) => document.querySelector(`[data-bulk="${a}"]`);
   btn("read").disabled = s.unread === 0;
-  btn("unsubscribe").disabled = s.unsubscribable.length === 0;
+  btn("unsubscribe").disabled = false;  // bundles without an unsubscribe option get a Trash/Spam choice
   btn("unsubscribe").textContent = s.unsubscribable.length && s.unsubscribable.length < n ? `Unsubscribe (${s.unsubscribable.length})` : "Unsubscribe";
   btn("block").hidden = !BLOCKABLE.has(state.view);
 }
@@ -1568,6 +1575,7 @@ async function bulk(action) {
     read: [`Mark ${fmtNum(s.unread)} messages as read?`, `Across ${B}.`, "Mark read", false],
     archive: [`Archive ${fmtNum(s.messages)} messages?`, `Across ${B}. They leave the inbox but stay searchable in All Mail.`, "Archive", false],
     trash: [`Move ${fmtNum(s.messages)} messages to Trash?`, `From ${B}. Gmail empties Trash after 30 days, so you can still recover them until then.`, "Move to Trash", true],
+    spam: [`Report ${B} as spam?`, `Moves ${fmtNum(s.messages)} messages to Gmail's Spam folder and teaches Gmail to filter these senders, like Gmail's own "Report spam". You can undo it from Spam for 30 days.`, "Report spam", true],
     block: [`Block ${B}?`, `Creates a Gmail filter for each so future mail skips the inbox, and archives the ${fmtNum(s.messages)} existing messages. Undo anytime in Gmail → Settings → Filters.`, "Block", true],
   };
   const [title, text, label, danger] = prompts[action];
@@ -1585,17 +1593,65 @@ async function bulk(action) {
   setBulkBusy(false);
 }
 
+// Per-sender choice for bundles that can't be unsubscribed: Trash (default), Spam or Leave.
+function fateChooser(rows) {
+  const choice = new Map(rows.map((r) => [r.key, "trash"]));
+  const OPTS = [["trash", "Trash"], ["spam", "Spam"], ["leave", "Leave"]];
+  const list = el("div", { class: "fates" });
+  const draw = () => list.replaceChildren(...rows.map((r) => el("div", { class: "fate" },
+    el("span", { class: "fate-name", title: bundleTitle(r)[0] }, bundleTitle(r)[0], el("span", { class: "muted" }, ` · ${fmtNum(r.n)}`)),
+    el("div", { class: "seg seg-sm", role: "radiogroup", "aria-label": `What to do with ${bundleTitle(r)[0]}` }, OPTS.map(([k, label]) =>
+      el("button", { type: "button", role: "radio", "aria-checked": String(choice.get(r.key) === k),
+        class: (choice.get(r.key) === k ? "on " : "") + k, onclick: () => { choice.set(r.key, k); draw(); } }, label))))));
+  draw();
+  const all = el("div", { class: "fate-all" }, "Set all:", OPTS.map(([k, label]) =>
+    el("button", { type: "button", class: "linkbtn", onclick: () => { rows.forEach((r) => choice.set(r.key, k)); draw(); } }, label)));
+  return { node: el("div", {}, all, list), choice };
+}
+
 async function bulkUnsubscribe(s) {
-  const eligible = s.unsubscribable, skipped = s.rows.length - eligible.length;
-  if (!(await ask({ title: `Unsubscribe from ${eligible.length} ${eligible.length === 1 ? "sender" : "senders"}?`,
-    body: "For each one, emliq uses one-click unsubscribe if the sender supports it, otherwise sends an unsubscribe email from your account. Senders that only offer a web page are listed for you to open afterwards." +
-      (skipped ? `\n\n${skipped} selected ${skipped === 1 ? "bundle has" : "bundles have"} no unsubscribe option and will be skipped.` : ""),
-    confirm: "Unsubscribe" }))) return;
-  setBulkBusy(true, `Unsubscribing from ${eligible.length}…`);
-  let res;
-  try { res = await api("/api/bulk", { view: state.view, scope: state.scope, keys: eligible.map((r) => r.key), action: "unsubscribe" }); }
-  catch (e) { toast(e.message); setBulkBusy(false); return; }
+  const eligible = s.unsubscribable, others = s.rows.filter((r) => !r.can_unsubscribe);
+  const chooser = others.length ? fateChooser(others) : null;
+  const plural = (n, one, many) => `${fmtNum(n)} ${n === 1 ? one : many}`;
+  const body = [];
+  if (eligible.length) body.push(el("p", {}, `emliq unsubscribes from ${plural(eligible.length, "sender", "senders")} using one-click unsubscribe where supported, otherwise an unsubscribe email from your account. Senders that only offer a web page are listed for you to open afterwards.`));
+  if (others.length) body.push(
+    el("p", {}, el("b", {}, `${plural(others.length, "sender has", "senders have")} no unsubscribe option.`),
+      " Choose what to do with their mail. Spam works like Gmail's “Report spam” and keeps future mail out of your inbox."),
+    chooser.node);
+  const title = eligible.length ? `Unsubscribe from ${plural(eligible.length, "sender", "senders")}?` : "No unsubscribe option";
+  if (!(await ask({ title, body, confirm: eligible.length ? "Unsubscribe" : "Apply" }))) return;
+
+  const pick = (k) => others.filter((r) => chooser.choice.get(r.key) === k);
+  const toTrash = chooser ? pick("trash") : [], toSpam = chooser ? pick("spam") : [];
+  let res = { results: [] };
+  const fate = { trash: 0, spam: 0 };
+  let failed = null;
+  try {
+    if (eligible.length) {
+      setBulkBusy(true, `Unsubscribing from ${plural(eligible.length, "sender", "senders")}…`);
+      res = await api("/api/bulk", { view: state.view, scope: state.scope, keys: eligible.map((r) => r.key), action: "unsubscribe" });
+    }
+    for (const [action, rows, label] of [["trash", toTrash, "Moving to Trash…"], ["spam", toSpam, "Reporting spam…"]]) {
+      if (!rows.length) continue;
+      setBulkBusy(true, label);
+      fate[action] = (await api("/api/bulk", { view: state.view, scope: state.scope, keys: rows.map((r) => r.key), action })).count;
+    }
+  } catch (e) { failed = e.message; }
   setBulkBusy(false);
+  if (failed) {  // keep the selection so the user can retry
+    toast(failed); renderBulk();
+    await Promise.all([refreshAll(), refreshStatus()]);
+    return;
+  }
+  state.selected.clear(); renderBulk();
+
+  if (!eligible.length) {  // nothing to report per sender; a short summary is enough
+    const parts = [fate.trash && `${fmtNum(fate.trash)} messages moved to Trash`, fate.spam && `${fmtNum(fate.spam)} reported as spam`].filter(Boolean);
+    toast(parts.length ? parts.join(" · ") : "Nothing changed");
+    await Promise.all([refreshAll(), refreshStatus()]);
+    return;
+  }
   const byKey = new Map(eligible.map((r) => [r.key, r]));
   const count = (m) => res.results.filter((r) => r.method === m).length;
   const done = res.results.filter((r) => r.method === "one-click" || r.method === "email");
@@ -1608,7 +1664,9 @@ async function bulkUnsubscribe(s) {
         el("span", { class: "chip" }, el("b", {}, count("one-click")), " one-click"),
         el("span", { class: "chip" }, el("b", {}, count("email")), " emailed"),
         el("span", { class: "chip" }, el("b", {}, count("link")), " need you"),
-        count("error") + count("none") ? el("span", { class: "chip" }, el("b", {}, count("error") + count("none")), " failed") : null),
+        count("error") + count("none") ? el("span", { class: "chip" }, el("b", {}, count("error") + count("none")), " failed") : null,
+        fate.trash ? el("span", { class: "chip" }, el("b", {}, fmtNum(fate.trash)), " trashed (no unsubscribe)") : null,
+        fate.spam ? el("span", { class: "chip" }, el("b", {}, fmtNum(fate.spam)), " reported as spam") : null),
       ...res.results.map((r) => {
         const row = byKey.get(r.key), [label, cls] = STATUS[r.method] || [r.method, ""];
         return el("div", { class: "res" },
@@ -1630,7 +1688,7 @@ async function bulkUnsubscribe(s) {
       }, "danger"],
     ],
   });
-  state.selected.clear(); renderBulk(); load();
+  load(); refreshStatus();
 }
 
 // In-app confirmation popup. Resolves true when confirmed, false on cancel/Esc/backdrop.
@@ -2082,7 +2140,7 @@ function showActivity() {
 }
 const ACT = {
   trash: ["Trashed", "trash", "bad"], archive: ["Archived", "archive", "good"], archive_read: ["Archived", "archive", "good"],
-  read: ["Marked read", "read", "good"], block: ["Blocked", "block", "bad"], unsubscribe: ["Unsubscribed", "unsub", "bad"],
+  read: ["Marked read", "read", "good"], block: ["Blocked", "block", "bad"], spam: ["Reported spam", "block", "bad"], unsubscribe: ["Unsubscribed", "unsub", "bad"],
   sync: ["Synced", "sync", ""], categorize: ["Categorized", "ai", "good"], model_download: ["Downloaded model", "ai", ""],
   ask: ["Asked AI", "ai", ""], sign_in: ["Signed in", "mail", "good"], sign_out: ["Signed out", "mail", ""],
 };
@@ -2204,7 +2262,7 @@ function renderLog(t) {
 }
 
 // ---------------------------------------------------------------- actions
-const LABELS = { read: "Marked read", archive: "Archived", trash: "Moved to Trash" };
+const LABELS = { read: "Marked read", archive: "Archived", trash: "Moved to Trash", spam: "Reported as spam" };
 async function act(r, action, button, confirmed = false) {
   const title = bundleTitle(r)[0];
   if (!confirmed && action === "trash" && !(await ask({ title: `Move ${fmtNum(r.n)} messages to Trash?`,
