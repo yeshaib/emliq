@@ -117,6 +117,17 @@ def unsubscribe_options(header):
     )
 
 
+def unsubscribe_pages(conn, view, keys, scope):
+    """The sender's unsubscribe web page for each bundle (read-only; nothing is contacted)."""
+    pages = {}
+    for key in keys[:200]:
+        msg = bundles.latest_in_bundle(conn, view, key, scope, require_unsubscribe=True)
+        urls, _ = unsubscribe_options(msg["list_unsubscribe"]) if msg else ([], [])
+        if urls:
+            pages[key] = urls[0]
+    return pages
+
+
 def unsubscribe(conn, service, view, key, scope):
     result = _unsubscribe(conn, service, view, key, scope)
     _log(conn, "unsubscribe", view, [key], scope, detail={"method": result["method"], "url": result.get("url")})

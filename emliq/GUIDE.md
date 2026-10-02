@@ -112,9 +112,11 @@ emliq tries, in order:
 Afterwards emliq offers to move that sender's existing messages to Trash. When you unsubscribe
 from several senders at once, a results window shows what happened for each one.
 
-Some senders don't offer any way to unsubscribe. If your selection includes them, the same popup
-lists each one with a choice: **Trash** (the default), **Spam** or **Leave**. Use **Set all** to
-choose the same for every one of them.
+Some senders can't be unsubscribed automatically: they offer no way to unsubscribe, or only a web
+page. If your selection includes them, the same popup lists each one with a choice: **Trash** (the
+default), **Spam** or **Leave**, plus an **Unsubscribe page** link for senders that have one. Use
+**Set all** to choose the same for every one of them. The count on the **Unsubscribe** button only
+includes senders emliq can unsubscribe from by itself.
 
 > Unsubscribing asks the sender to stop. Most comply within a few days; for any that don't, use Block.
 

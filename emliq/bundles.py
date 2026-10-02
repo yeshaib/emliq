@@ -11,6 +11,11 @@ _SIZE = """CASE
     ELSE '5 under 256 KB' END"""
 
 _YEAR = "strftime('%Y', date / 1000, 'unixepoch')"
+# How a bundle can be unsubscribed. "Automatic" = an unsubscribe email or RFC 8058 one-click
+# link; "page" = only a web link the user has to open. Broken headers count as neither.
+_UNSUB_AUTO = ("(COALESCE(list_unsubscribe, '') LIKE '%mailto:%' OR (lower(COALESCE(list_unsubscribe_post, '')) "
+               "LIKE '%one-click%' AND COALESCE(list_unsubscribe, '') LIKE '%https://%'))")
+_UNSUB_PAGE = "(COALESCE(list_unsubscribe, '') LIKE '%http://%' OR COALESCE(list_unsubscribe, '') LIKE '%https://%')"
 _AI = "(SELECT sc.category FROM sender_categories sc WHERE sc.from_email = messages.from_email)"
 
 # view -> (grouping expression, display-label expression, default ORDER BY)
@@ -70,7 +75,8 @@ def list_bundles(conn, view, scope="inbox", q=None, sort=None, page=1, per_page=
     per_page = per_page or limit or 1000
     grouped = f"""SELECT {group} AS key, {label} AS label, COUNT(*) AS n, SUM(unread) AS unread,
                SUM(in_inbox) AS inbox, SUM(size) AS bytes, MAX(date) AS latest,
-               MAX(list_unsubscribe IS NOT NULL) AS can_unsubscribe
+               MAX({_UNSUB_AUTO}) AS unsub_auto, MAX({_UNSUB_PAGE}) AS unsub_page,
+               MAX({_UNSUB_AUTO} OR {_UNSUB_PAGE}) AS can_unsubscribe
             FROM messages WHERE {where}
             GROUP BY key HAVING key IS NOT NULL"""
     rows = [dict(r) for r in conn.execute(

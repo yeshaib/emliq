@@ -413,6 +413,13 @@ def bulk():
     return jsonify(count=actions.apply_many(conn, service, view, keys, scope, action))
 
 
+@app.post("/api/unsubscribe-pages")
+def unsubscribe_pages():
+    body = request.get_json()
+    view, scope = _args(body)
+    return jsonify(pages=actions.unsubscribe_pages(connect(), view, body.get("keys") or [], scope))
+
+
 @app.post("/api/unsubscribe")
 def unsubscribe():
     body = request.get_json()

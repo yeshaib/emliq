@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.1 — 2026-10-02
+- Bulk Unsubscribe now also lists senders that only offer an unsubscribe web page, or whose unsubscribe link is broken, in the Trash / Spam / Leave choice (with an Unsubscribe page link where there is one)
+- The Unsubscribe button's count only includes senders emliq can unsubscribe from automatically
+
 ## 0.9.0 — 2026-10-02
 - Update check: when a newer emliq is released, the version badge shows Update available, with what's new and the command to update (with a Copy button)
 - Settings → Updates: turn the once-a-day check on or off, or Check now; emliq never updates itself and sends nothing about you

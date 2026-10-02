@@ -222,6 +222,11 @@ n = actions.apply_many(conn2, fake, "sender", ["messages-noreply@linkedin.com"],
 assert n > 0 and not bundles.bundle_ids(conn2, "sender", "messages-noreply@linkedin.com", "all")
 assert all("SPAM" in m["labelIds"] and "INBOX" not in m["labelIds"]
            for m in fake.msgs.values() if "linkedin" in m["payload"]["headers"][0]["value"])
+# unsubscribe modes: amazon (one-click + email) and linkedin (email) are automatic,
+# cafe only has a web page, mom has nothing
+modes = {r["key"]: (r["unsub_auto"], r["unsub_page"], r["can_unsubscribe"]) for r in bundles.list_bundles(conn2, "sender", "all")}
+assert modes["shipment-tracking@amazon.com"][0] == 1 and modes["news@cafe.fr"] == (0, 1, 1) and modes["mom@gmail.com"] == (0, 0, 0), modes
+assert actions.unsubscribe_pages(conn2, "sender", ["news@cafe.fr", "mom@gmail.com"], "all") == {"news@cafe.fr": "https://cafe.fr/unsub"}
 print("BULK OK")
 
 # ---- pagination

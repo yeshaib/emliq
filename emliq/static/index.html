@@ -460,6 +460,8 @@
   .fate-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; color: var(--text); }
   .seg.seg-sm button { padding: 3px 9px; font-size: 12px; }
   .seg.seg-sm button.on.trash { color: var(--danger); }
+  .fate-why { display: block; font-size: 11px; color: var(--muted); }
+  .fate-link { font-size: 12px; color: var(--accent-ink); white-space: nowrap; }
   .fate-all { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--muted); margin-top: 2px; }
   .res { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); font-size: 13px; }
   .res .who-n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1567,7 +1569,9 @@ function selectedStats() {
     rows, keys: rows.map((r) => r.key),
     messages: rows.reduce((a, r) => a + r.n, 0),
     unread: rows.reduce((a, r) => a + (r.unread || 0), 0),
-    unsubscribable: rows.filter((r) => r.can_unsubscribe),
+    // Only senders emliq can unsubscribe from by itself (one-click or email); web-page-only and
+    // broken ones go to the Trash / Spam / Leave choice instead.
+    unsubscribable: rows.filter((r) => r.unsub_auto),
   };
 }
 function renderBulk() {
@@ -1621,12 +1625,15 @@ async function bulk(action) {
 }
 
 // Per-sender choice for bundles that can't be unsubscribed: Trash (default), Spam or Leave.
-function fateChooser(rows) {
+function fateChooser(rows, pages = {}) {
   const choice = new Map(rows.map((r) => [r.key, "trash"]));
   const OPTS = [["trash", "Trash"], ["spam", "Spam"], ["leave", "Leave"]];
   const list = el("div", { class: "fates" });
   const draw = () => list.replaceChildren(...rows.map((r) => el("div", { class: "fate" },
-    el("span", { class: "fate-name", title: bundleTitle(r)[0] }, bundleTitle(r)[0], el("span", { class: "muted" }, ` · ${fmtNum(r.n)}`)),
+    el("span", { class: "fate-name", title: bundleTitle(r)[0] }, bundleTitle(r)[0], el("span", { class: "muted" }, ` · ${fmtNum(r.n)}`),
+      el("span", { class: "fate-why" }, pages[r.key] ? "web page only" : "no unsubscribe option")),
+    pages[r.key] ? el("a", { class: "fate-link", href: pages[r.key], target: "_blank", rel: "noopener noreferrer",
+      title: "Opens the sender's unsubscribe page" }, "Unsubscribe page ↗") : null,
     el("div", { class: "seg seg-sm", role: "radiogroup", "aria-label": `What to do with ${bundleTitle(r)[0]}` }, OPTS.map(([k, label]) =>
       el("button", { type: "button", role: "radio", "aria-checked": String(choice.get(r.key) === k),
         class: (choice.get(r.key) === k ? "on " : "") + k, onclick: () => { choice.set(r.key, k); draw(); } }, label))))));
@@ -1637,13 +1644,21 @@ function fateChooser(rows) {
 }
 
 async function bulkUnsubscribe(s) {
-  const eligible = s.unsubscribable, others = s.rows.filter((r) => !r.can_unsubscribe);
-  const chooser = others.length ? fateChooser(others) : null;
+  const eligible = s.unsubscribable, others = s.rows.filter((r) => !r.unsub_auto);
+  let pages = {};
+  const pageOnly = others.filter((r) => r.unsub_page);
+  if (pageOnly.length) {
+    try { pages = (await api("/api/unsubscribe-pages", { view: state.view, scope: state.scope, keys: pageOnly.map((r) => r.key) })).pages; }
+    catch { /* the list still works without the links */ }
+  }
+  const chooser = others.length ? fateChooser(others, pages) : null;
   const plural = (n, one, many) => `${fmtNum(n)} ${n === 1 ? one : many}`;
   const body = [];
-  if (eligible.length) body.push(el("p", {}, `emliq unsubscribes from ${plural(eligible.length, "sender", "senders")} using one-click unsubscribe where supported, otherwise an unsubscribe email from your account. Senders that only offer a web page are listed for you to open afterwards.`));
+  if (eligible.length) body.push(el("p", {}, `emliq unsubscribes from ${plural(eligible.length, "sender", "senders")} using one-click unsubscribe where supported, otherwise an unsubscribe email from your account.`));
+  const nPage = Object.keys(pages).length, nNone = others.length - nPage;
+  const why = [nPage && `${plural(nPage, "only offers", "only offer")} a web page`, nNone && `${fmtNum(nNone)} ${nNone === 1 ? "has" : "have"} no unsubscribe option`].filter(Boolean).join(", ");
   if (others.length) body.push(
-    el("p", {}, el("b", {}, `${plural(others.length, "sender has", "senders have")} no unsubscribe option.`),
+    el("p", {}, el("b", {}, `${plural(others.length, "sender can't", "senders can't")} be unsubscribed automatically`), ` (${why}).`,
       " Choose what to do with their mail. Spam works like Gmail's “Report spam” and keeps future mail out of your inbox."),
     chooser.node);
   const title = eligible.length ? `Unsubscribe from ${plural(eligible.length, "sender", "senders")}?` : "No unsubscribe option";
