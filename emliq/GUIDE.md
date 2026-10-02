@@ -208,6 +208,7 @@ stored only on your computer.
 
 - **Gmail account:** who's signed in, **Sign out** and **Switch account**.
 - **AI provider:** Claude or a local model, the Ollama model and downloads, and your Anthropic key.
+- **Updates:** turn the daily update check on or off, or **Check now**.
 - **Dashboard and menu:** show or hide tiles and groupings.
 - **About this install:** your data folder and exactly what emliq stores.
 
@@ -227,12 +228,18 @@ data automatically, so two mailboxes never mix.
 A progress panel in the bottom-right corner shows each step, for example
 "Step 2 of 3 · 6,000 of ~12,434". If a sync is interrupted, the next one picks up where it stopped.
 
+## Updating emliq
+
+When a newer version is out, the badge in the bottom-right corner turns into **Update available**.
+Click it to see what's new and the command to update, with a **Copy** button. Run it in a
+terminal, then restart emliq. Your data, settings and sign-in are kept. emliq never updates itself.
+
 ## Privacy and your data
 
 - emliq stores only each message's sender, subject, date, Gmail labels, size and unsubscribe link. Never the content or attachments.
 - Everything is kept in one folder on your computer: `~/.emliq` on macOS and Linux, `C:\Users\you\.emliq` on Windows.
 - The app only accepts connections from your own computer.
-- Nothing is sent anywhere except to Gmail, and to Anthropic only if you choose Claude.
+- Nothing is sent anywhere except to Gmail, to Anthropic only if you choose Claude, and a once-a-day request to GitHub to see whether a newer emliq exists (it sends nothing about you; turn it off in **Settings → Updates**).
 
 To remove everything: sign out with **Also delete emliq's cached mail data** ticked, remove your
 Anthropic key in Settings, then delete the data folder. You can also revoke access at

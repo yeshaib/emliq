@@ -167,6 +167,9 @@ it leaves your computer; with Claude it's sent to Anthropic.
 - Gmail permissions requested: *read, compose, send and organize* (to read headers, archive,
   trash and send unsubscribe emails) and *manage basic mail settings* (to create Block
   filters). emliq can't permanently delete mail.
+- **Update check:** once a day emliq asks GitHub for its latest public release so it can show
+  "Update available". Nothing about you or your mail is sent, and emliq never updates itself.
+  Turn it off in **Settings → Updates**.
 - **Sign out** in Settings removes emliq's access at Google and can delete the local data.
   You can also revoke access any time at [myaccount.google.com/permissions](https://myaccount.google.com/permissions).
 

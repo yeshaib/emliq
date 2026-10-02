@@ -8,7 +8,7 @@ from urllib.parse import urlsplit
 from flask import Flask, abort, jsonify, redirect, request, send_from_directory
 from googleapiclient.errors import HttpError
 
-from . import __version__, actions, ai, analytics, ask, auth, bundles, ollama
+from . import __version__, actions, ai, analytics, ask, auth, bundles, ollama, updates
 from .auth import NotAuthenticated
 from .auth import gmail as _gmail
 from .config import HOME
@@ -189,6 +189,18 @@ def _changelog():
 @app.get("/api/guide")
 def guide():
     return jsonify(markdown=(Path(__file__).parent / "GUIDE.md").read_text(encoding="utf-8"))
+
+
+@app.get("/api/update")
+def update_status():
+    return jsonify(updates.status(connect(), force=request.args.get("force") == "1"))
+
+
+@app.post("/api/settings/updates")
+def set_update_check():
+    conn = connect()
+    updates.set_enabled(conn, bool(request.get_json().get("enabled")))
+    return jsonify(updates.status(conn))
 
 
 @app.get("/api/version")

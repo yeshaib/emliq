@@ -123,6 +123,30 @@ try:
 except ContentNotAllowed:
     pass
 print("PRIVACY OK")
+
+# ---- update check: compares versions, caches daily, can be turned off, survives being offline
+from emliq import updates, __version__
+calls = []
+def newer():
+    calls.append(1)
+    return {"version": "999.0.0", "url": "https://example.com/r", "name": "big", "notes": "", "published": None}
+up = updates.status(conn, fetch=newer)
+assert up["available"] and up["latest"]["version"] == "999.0.0" and "v999.0.0.zip" in up["commands"]["uv"]
+updates.status(conn, fetch=newer)
+assert len(calls) == 1, "should be cached for a day"
+updates.status(conn, force=True, fetch=newer)
+assert len(calls) == 2, "Check now bypasses the cache"
+same = lambda: {"version": __version__, "url": None, "name": None, "notes": "", "published": None}
+assert not updates.status(conn, force=True, fetch=same)["available"]
+assert updates.parse("v1.10.0") > updates.parse("1.9.9") and updates.parse("junk") == (0, 0, 0)
+updates.set_enabled(conn, False)
+conn.execute("DELETE FROM meta WHERE key = 'update_checked_at'"); conn.commit()
+updates.status(conn, fetch=newer)
+assert len(calls) == 2, "no automatic check when turned off"
+def offline(): raise OSError("no network")
+assert "Couldn't check" in updates.status(conn, force=True, fetch=offline)["error"]
+updates.set_enabled(conn, True)
+print("UPDATES OK")
 assert st["total"] == 2500 and st["fetched"] == 2500
 
 for view in bundles.VIEWS:

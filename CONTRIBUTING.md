@@ -18,6 +18,8 @@ python tests/run_tests.py     # must pass before you open a pull request
 ```
 
 - Keep emliq local-first: no telemetry, no servers, nothing sent anywhere the user didn't choose.
+  The one exception is the daily update check (a plain request for the latest GitHub release,
+  carrying no user data), which users can turn off.
 - Anything that changes mail must go through a confirmation and must never permanently delete.
 - Match the style of the surrounding code; keep dependencies to a minimum.
 - Every user-visible change gets its own version, following [semantic versioning](https://semver.org):

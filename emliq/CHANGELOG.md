@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.0 — 2026-10-02
+- Update check: when a newer emliq is released, the version badge shows Update available, with what's new and the command to update (with a Copy button)
+- Settings → Updates: turn the once-a-day check on or off, or Check now; emliq never updates itself and sends nothing about you
+
 ## 0.8.0 — 2026-10-01
 - Bulk Unsubscribe handles senders with no unsubscribe option: choose Trash (default), Spam or Leave for each one, or set all at once
 - New Spam action in the bulk bar, the same as Gmail's "Report spam"

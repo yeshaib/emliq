@@ -200,6 +200,8 @@
   .help-body b { color: var(--text); }
   .help-body code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px; }
   .help-body a { color: var(--accent-ink); }
+  .help-body pre.code { margin: 0 0 12px; padding: 10px 12px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--line); overflow-x: auto; }
+  .help-body pre.code code { border: 0; background: none; padding: 0; white-space: pre; }
   .help-body blockquote { margin: 0 0 14px; padding: 10px 14px; border-radius: 10px; background: var(--accent-soft); color: var(--accent-ink); }
   .help-body blockquote p { margin: 0; color: inherit; }
   .help-body table { margin: 0 0 16px; font-size: 14px; border: 1px solid var(--line); border-radius: 10px; border-collapse: separate; border-spacing: 0; width: 100%; overflow: hidden; }
@@ -280,6 +282,20 @@
   .version:hover { color: var(--accent-ink); border-color: var(--accent); }
   .version .new { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
   .releases { display: flex; flex-direction: column; gap: 16px; }
+  .version.has-update { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .version.has-update:hover { color: #fff; filter: brightness(1.08); }
+  .version svg { width: 14px; height: 14px; }
+  .update-box { border: 1px solid var(--accent); background: var(--accent-soft); border-radius: 12px; padding: 12px 14px; margin-bottom: 16px; }
+  .update-box h4 { margin: 0 0 6px; font-size: 15px; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+  .update-box h4 .when { font-weight: 400; color: var(--muted); font-size: 12px; }
+  .update-box p { margin: 8px 0; font-size: 13px; color: var(--text-2); }
+  .update-box a { color: var(--accent-ink); }
+  .update-notes { padding: 0; max-width: none; font-size: 13px; }
+  .update-notes h3 { font-size: 13px; margin: 8px 0 4px; }
+  .update-notes pre, .update-notes code { white-space: pre-wrap; }
+  .cmds { display: grid; gap: 4px; font-size: 12px; }
+  .cmd { display: flex; gap: 8px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 6px 6px 6px 10px; margin-bottom: 6px; }
+  .cmd code { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; font-size: 12px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
   .release h4 { margin: 0 0 6px; font-size: 14px; display: flex; align-items: center; gap: 8px; }
   .release h4 .when { font-weight: 400; color: var(--muted); font-size: 12px; }
   .release h4 .cur { font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 10px; background: var(--accent-soft); color: var(--accent-ink); }
@@ -718,6 +734,15 @@
           <div class="err" id="keyErr"></div>
         </section>
         <section class="card set-card">
+          <h2>Updates</h2>
+          <div id="updateStatus"></div>
+          <label class="inline" style="font-size:14px;cursor:pointer"><input type="checkbox" class="cb" id="updateToggle">
+            Check GitHub for new versions once a day</label>
+          <p class="muted" style="font-size:12px">This only asks GitHub for emliq's latest public release; nothing about you or your mail is sent. emliq never updates itself.</p>
+          <div class="inline"><button class="btn" type="button" id="updateCheckNow">Check now</button>
+            <button class="btn primary" type="button" id="updateView" hidden>See update</button></div>
+        </section>
+        <section class="card set-card">
           <h2>Dashboard and menu</h2>
           <p id="layoutSummary">Choose which dashboard tiles and left-menu groupings you see.</p>
           <div class="inline"><button class="btn" type="button" id="customizeBtn2">Customize…</button></div>
@@ -817,6 +842,7 @@ const ICON = {
   ai: '<path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>',
   activity: '<path d="M3 12h4l3-8 4 16 3-8h4"/>',
   chev: '<path d="M6 9l6 6 6-6"/>',
+  download: '<path d="M12 4v11m0 0l-4-4m4 4l4-4M5 20h14"/>',
   check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
   help: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 015 .5c0 1.7-2.5 2-2.5 3.5M12 17h.01"/>',
   gear: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/>',
@@ -1189,6 +1215,7 @@ function showSettings() {
 async function loadSettings() {
   state.auth = await api("/api/auth").catch(() => state.auth);
   renderAccountCard();
+  renderUpdateCard();
   const [st, est] = await Promise.all([api("/api/settings"), api("/api/ai/estimate")]);
   state.settings = st;
   const k = st.anthropic, local = st.ai.provider === "ollama", o = st.ollama;
@@ -1834,6 +1861,14 @@ function mdRender(md) {
   while (i < lines.length) {
     const line = lines[i];
     if (!line.trim()) { i++; continue; }
+    if (line.startsWith("```")) {  // fenced code block
+      const code = [];
+      i++;
+      while (i < lines.length && !lines[i].startsWith("```")) { code.push(lines[i]); i++; }
+      i++;
+      out.push(el("pre", { class: "code" }, el("code", {}, code.join("\n"))));
+      continue;
+    }
     let m;
     if ((m = line.match(/^(#{1,3})\s+(.*)/))) {
       const tag = "h" + m[1].length;
@@ -2334,6 +2369,17 @@ document.querySelector("#settingsPage .set-card h2 + p")?.closest(".set-card")?.
 document.querySelector("#aiChartCard .card-h h2")?.append(helpLink("ai-categories", "How AI categories work"));
 document.querySelector("#askNote")?.before(el("div", { style: "padding:0 18px 6px" }, helpLink("ask-ai", "Tips for Ask AI")));
 $("customizeBtn").addEventListener("click", customizeLayout);
+$("updateToggle").addEventListener("change", async (e) => {
+  try { state.update = await api("/api/settings/updates", { enabled: e.target.checked }); paintVersion(); renderUpdateCard(); }
+  catch (err) { toast(err.message); }
+});
+$("updateCheckNow").addEventListener("click", async (e) => {
+  e.target.disabled = true; e.target.textContent = "Checking…";
+  const u = await checkUpdate(true);
+  e.target.disabled = false; e.target.textContent = "Check now";
+  toast(u?.error || (u?.available ? `emliq ${u.latest.version} is available` : "You're on the latest version"));
+});
+$("updateView").addEventListener("click", showVersionDialog);
 $("insightsBtn").addEventListener("click", () => setInsights(!insightsOpen));
 $("insightsClose").addEventListener("click", () => setInsights(false));
 $("insightsBackdrop").addEventListener("click", () => setInsights(false));
@@ -2367,23 +2413,78 @@ document.querySelectorAll("[data-bulk]").forEach((b) => b.addEventListener("clic
 $("bulkClear").addEventListener("click", () => clearSelection());
 $("unreadBtn").addEventListener("click", () => startSync({ query: "is:unread" }));
 
+// ---------------------------------------------------------------- version badge + update check
 async function initVersion() {
   let v;
   try { v = await api("/api/version"); } catch { return; }
-  const btn = $("versionBtn");
-  const paint = () => btn.replaceChildren(...(stored("seenVersion", null) !== v.version ? [el("span", { class: "new" })] : []), "v" + v.version);
-  paint(); btn.hidden = false;
-  btn.onclick = () => {
-    store("seenVersion", v.version); paint();
-    showDialog({
-      title: "What's new in emliq", sub: `You're on version ${v.version}`,
-      body: [el("div", { class: "releases" }, v.releases.map((r) => el("section", { class: "release" },
+  state.version = v;
+  $("versionBtn").hidden = false;
+  paintVersion();
+  $("versionBtn").onclick = () => { store("seenVersion", v.version); paintVersion(); showVersionDialog(); };
+  checkUpdate();
+  setInterval(checkUpdate, 6 * 3600 * 1000);  // the server still checks GitHub at most once a day
+}
+async function checkUpdate(force = false) {
+  try { state.update = await api("/api/update" + (force ? "?force=1" : "")); } catch { return state.update; }
+  paintVersion();
+  if (state.page === "settings") renderUpdateCard();
+  return state.update;
+}
+function paintVersion() {
+  const v = state.version, u = state.update, btn = $("versionBtn");
+  if (!v) return;
+  if (u?.available) {
+    btn.classList.add("has-update");
+    btn.replaceChildren(icon("download"), `Update available · v${u.latest.version}`);
+    btn.setAttribute("aria-label", `emliq ${u.latest.version} is available`);
+  } else {
+    btn.classList.remove("has-update");
+    btn.replaceChildren(...(stored("seenVersion", null) !== v.version ? [el("span", { class: "new" })] : []), "v" + v.version);
+    btn.setAttribute("aria-label", "What's new");
+  }
+}
+function copyable(cmd) {
+  const b = el("button", { class: "btn sm", type: "button", onclick: async () => {
+    try { await navigator.clipboard.writeText(cmd); b.textContent = "Copied"; setTimeout(() => (b.textContent = "Copy"), 1500); }
+    catch { toast("Couldn't copy; select the command instead."); }
+  } }, "Copy");
+  return el("div", { class: "cmd" }, el("code", {}, cmd), b);
+}
+function updatePanel(u) {
+  return el("section", { class: "update-box" },
+    el("h4", {}, `emliq ${u.latest.version} is available`, el("span", { class: "when" }, `you have ${u.current}`)),
+    u.latest.notes ? el("div", { class: "update-notes help-body" }, ...mdRender(u.latest.notes.replace(/^#+\s*/gm, "### "))) : null,
+    el("p", {}, "Update with the same tool you installed emliq with, then restart emliq:"),
+    el("div", { class: "cmds" },
+      el("div", { class: "muted" }, "Installed with uv (most people)"), copyable(u.commands.uv),
+      el("div", { class: "muted" }, "Docker"), copyable(u.commands.docker),
+      el("div", { class: "muted" }, "From source"), copyable(u.commands.source)),
+    u.latest.url ? el("p", {}, el("a", { href: u.latest.url, target: "_blank", rel: "noopener noreferrer" }, "Release page on GitHub ↗")) : null);
+}
+function showVersionDialog() {
+  const v = state.version, u = state.update;
+  showDialog({
+    title: u?.available ? "Update available" : "What's new in emliq",
+    sub: `You're on version ${v.version}`,
+    body: [
+      u?.available ? updatePanel(u) : null,
+      el("div", { class: "releases" }, v.releases.map((r) => el("section", { class: "release" },
         el("h4", {}, "v" + r.version, el("span", { class: "when" }, r.date ? new Date(r.date + "T12:00").toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : ""),
           r.version === v.version ? el("span", { class: "cur" }, "Current") : null),
-        el("ul", {}, r.changes.map((c) => el("li", {}, c))))))],
-      actions: [["Close", () => {}]],
-    });
-  };
+        el("ul", {}, r.changes.map((c) => el("li", {}, c))))))].filter(Boolean),
+    actions: [["Close", () => {}]],
+  });
+}
+function renderUpdateCard() {
+  const u = state.update || {}, box = $("updateStatus");
+  if (!box) return;
+  const when = u.checked_at ? new Date(u.checked_at * 1000).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : null;
+  box.replaceChildren(el("span", { class: "status" + (u.available ? "" : " ok") }, el("span", { class: "d" }),
+    u.available ? `Version ${u.latest.version} is available (you have ${u.current})`
+      : u.latest ? `Up to date (version ${u.current})` : `Version ${u.current || state.version?.version || ""}`),
+    el("div", { class: "muted", style: "font-size:12px;margin-top:4px" }, u.error || (when ? `Last checked ${when}` : "Not checked yet")));
+  $("updateToggle").checked = u.enabled !== false;
+  $("updateView").hidden = !u.available;
 }
 
 // The floating version badge steps aside while scrolling down so it never covers row buttons.
