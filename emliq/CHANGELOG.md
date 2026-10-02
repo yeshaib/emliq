@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.10.0 — 2026-10-02
+- Select individual senders inside an expanded AI category (checkbox, click to add, Shift-click for a range) and use any bulk action on them
+
 ## 0.9.2 — 2026-10-02
 - Credits App Enablement (appenablement.com), which offers emliq for free, in the app, README and guide
 

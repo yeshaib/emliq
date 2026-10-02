@@ -84,6 +84,11 @@ by most messages, largest, most unread or most recent. Long lists are split into
 - **Shift-click** selects everything between the last row you clicked and this one.
 - The checkbox at the top of the list selects the whole page.
 
+You can also pick individual senders inside a bundle: expand an **AI categories** row (or any
+bundle that lists its senders) and tick the senders you want, with the same click and Shift-click
+shortcuts. A selection holds either whole bundles or individual senders, never both; starting the
+other kind clears the first.
+
 Selections stay when you change pages. A bar at the bottom shows how many bundles and messages
 you've picked, with **Mark read**, **Archive**, **Unsubscribe**, **Block**, **Spam** and **Trash**.
 

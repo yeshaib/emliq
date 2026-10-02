@@ -393,6 +393,9 @@
   .preview-list { max-height: 340px; overflow: auto; padding: 6px 16px 12px 56px; }
   .preview-list.senders { padding-left: 16px; max-height: 460px; }
   .cat-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 6px 0 10px; font-size: 13px; color: var(--text-2); }
+  .srow.selectable { grid-template-columns: 18px 26px minmax(0, 1fr) auto auto 18px; }
+  .srow.selected { background: var(--accent-soft); }
+  .srow .cb { margin: 0; }
   .srow { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto auto 18px; gap: 10px; align-items: center; padding: 7px 8px; border-radius: 8px; cursor: pointer; }
   .srow:hover { background: var(--surface); }
   .srow .name { font-size: 13px; max-width: none; }
@@ -882,7 +885,7 @@ const CAT_ORDER = ["primary", "promotions", "social", "updates", "forums", "othe
 const state = {
   page: "dash", view: "sender", scope: "unread", q: "", sort: "", open: null, rows: [], selected: new Map(),
   pageNum: 1, perPage: PER_PAGE.includes(stored("perPage", 15)) ? stored("perPage", 15) : 15, total: 0,
-  aiAction: "", aiCategory: "", logPage: 1, lastSel: null, emails: null, emailsTitle: "", chat: [], searchQ: "",
+  aiAction: "", aiCategory: "", logPage: 1, lastSel: null, selView: null, emails: null, emailsTitle: "", chat: [], searchQ: "",
 };
 
 const $ = (id) => document.getElementById(id);
@@ -1487,6 +1490,7 @@ async function fillCategorySenders(r, tr) {
   const data = await api("/api/bundles?" + params);
   const box = tr.querySelector(".preview-list");
   box.classList.add("senders");
+  box._senders = data.bundles;
   const max = Math.max(1, ...data.bundles.map((x) => x.n));
   const labels = { unsubscribe: "Unsubscribe?", archive: "Archive?", keep: "Keep" };
   box.replaceChildren(
@@ -1497,9 +1501,15 @@ async function fillCategorySenders(r, tr) {
     ...data.bundles.map((x) => {
       const [name] = [x.label || x.key];
       const msgs = el("div", { class: "srow-msgs", hidden: "" });
-      const row = el("div", { class: "srow", role: "button", tabindex: "0", "aria-expanded": "false",
+      const picked = state.selView === "sender" && state.selected.has(x.key);
+      const cb = el("input", { type: "checkbox", class: "cb", "aria-label": "Select " + name, checked: picked ? "" : null,
+        onclick: (e) => { e.stopPropagation(); subSelectClick(x, row, e); } });
+      const row = el("div", { class: "srow selectable" + (picked ? " selected" : ""), role: "button", tabindex: "0", "aria-expanded": "false",
+        "data-key": x.key,
         onclick: async (e) => {
           e.stopPropagation();
+          // While picking senders, a click on a row adds or removes it, like the main list.
+          if ((state.selView === "sender" && state.selected.size) || e.shiftKey) return subSelectClick(x, row, e);
           const open = msgs.hidden;
           msgs.hidden = !open; row.setAttribute("aria-expanded", String(open));
           if (open && !msgs.childElementCount) {
@@ -1510,6 +1520,7 @@ async function fillCategorySenders(r, tr) {
           }
         },
         onkeydown: (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); row.click(); } } },
+        cb,
         el("span", { class: "avatar sm", style: `background:${avatarColor(x.key)}` }, name.trim()[0]?.toUpperCase() || "?"),
         el("div", { class: "who-t" }, el("div", { class: "name" }, name), el("div", { class: "subline" }, x.key)),
         x.ai_action ? el("span", { class: "ai-tag " + x.ai_action, title: x.ai_reason || "" }, labels[x.ai_action]) : el("span"),
@@ -1519,6 +1530,30 @@ async function fillCategorySenders(r, tr) {
     }),
     data.total > data.bundles.length ? el("div", { class: "muted", style: "padding-top:8px" },
       `Showing the top ${data.bundles.length}. Use “Select & clean up” to see all ${fmtNum(data.total)}.`) : null);
+}
+function setSubSelected(row, on) {
+  row.classList.toggle("selected", on);
+  const cb = row.querySelector("input.cb");
+  if (cb) cb.checked = on;
+}
+// Pick a sender inside an expanded bundle; Shift-click selects a range within that list.
+function subSelectClick(x, row, e) {
+  claimSelection("sender");
+  const list = [...row.closest(".preview-list").querySelectorAll(".srow.selectable")];
+  const idx = list.indexOf(row);
+  const rowsData = row.closest(".preview-list")._senders || [];
+  if (e.shiftKey && state.lastSub && state.lastSub.list === row.closest(".preview-list") && state.lastSub.idx !== idx) {
+    const [a, b] = [Math.min(state.lastSub.idx, idx), Math.max(state.lastSub.idx, idx)];
+    for (let i = a; i <= b; i++) { state.selected.set(rowsData[i].key, rowsData[i]); setSubSelected(list[i], true); }
+    window.getSelection()?.removeAllRanges();
+  } else {
+    const on = !state.selected.has(x.key);
+    on ? state.selected.set(x.key, x) : state.selected.delete(x.key);
+    setSubSelected(row, on);
+  }
+  state.lastSub = { list: row.closest(".preview-list"), idx };
+  if (!state.selected.size) state.selView = null;
+  renderBulk();
 }
 function togglePreview(r, row) {
   const wasOpen = state.open === r.key;
@@ -1535,6 +1570,7 @@ function headerCheckbox() {
   const cb = el("input", { type: "checkbox", class: "cb", id: "selAll", "aria-label": "Select all bundles on this page",
     onclick: (e) => e.stopPropagation(),
     onchange: (e) => {
+      claimSelection(state.view);
       state.rows.forEach((r) => e.target.checked ? state.selected.set(r.key, r) : state.selected.delete(r.key));
       document.querySelectorAll("tr.bundle").forEach((tr) => setRowSelected(tr, e.target.checked));
       renderBulk();
@@ -1549,7 +1585,18 @@ function setRowSelected(tr, on) {
 }
 function rowFor(key) { return document.querySelector(`tr.bundle[data-key="${CSS.escape(key)}"]`); }
 // Click toggles one row; Shift-click selects every row between the last click and this one.
+// A selection holds one kind of bundle (whole categories, or senders picked inside them),
+// so a bulk action never mixes the two. Starting the other kind clears the first.
+function claimSelection(view) {
+  if (state.selected.size && state.selView && state.selView !== view) {
+    clearSelection();
+    toast(view === "sender" ? "Now selecting individual senders" : "Now selecting whole bundles");
+  }
+  state.selView = view;
+}
+const selView = () => state.selView || state.view;
 function selectClick(r, row, e) {
+  claimSelection(state.view);
   const idx = state.rows.findIndex((x) => x.key === r.key);
   if (e.shiftKey && state.lastSel != null && state.lastSel !== idx) {
     const [a, b] = [Math.min(state.lastSel, idx), Math.max(state.lastSel, idx)];
@@ -1565,8 +1612,11 @@ function selectClick(r, row, e) {
 }
 function clearSelection(rerender = true) {
   state.selected.clear();
-  state.lastSel = null;
-  if (rerender) document.querySelectorAll("tr.bundle.selected").forEach((tr) => setRowSelected(tr, false));
+  state.lastSel = null; state.lastSub = null; state.selView = null;
+  if (rerender) {
+    document.querySelectorAll("tr.bundle.selected").forEach((tr) => setRowSelected(tr, false));
+    document.querySelectorAll(".srow.selected").forEach((r) => setSubSelected(r, false));
+  }
   renderBulk();
 }
 function selectedStats() {
@@ -1586,17 +1636,19 @@ function renderBulk() {
   document.body.classList.toggle("bulk-on", n > 0);
   document.body.classList.toggle("selecting", n > 0);
   const all = $("selAll");
-  const onPage = state.rows.filter((r) => state.selected.has(r.key)).length;
+  const subPicks = selView() !== state.view;
+  const onPage = subPicks ? 0 : state.rows.filter((r) => state.selected.has(r.key)).length;
   if (all) { all.checked = onPage > 0 && onPage === state.rows.length; all.indeterminate = onPage > 0 && onPage < state.rows.length; }
   if (!n) return;
   const offPage = n - onPage;
-  $("bulkWhat").replaceChildren(el("b", {}, fmtNum(n)), ` ${n === 1 ? "bundle" : "bundles"} · ${fmtNum(s.messages)} messages` + (offPage ? ` (${offPage} on other pages)` : ""),
+  const noun = subPicks ? (n === 1 ? "sender" : "senders") : (n === 1 ? "bundle" : "bundles");
+  $("bulkWhat").replaceChildren(el("b", {}, fmtNum(n)), ` ${noun} · ${fmtNum(s.messages)} messages` + (!subPicks && offPage ? ` (${offPage} on other pages)` : ""),
     ...(n < 3 ? [el("div", { class: "hint" }, "Click rows to add · Shift-click for a range")] : []));
   const btn = (a) => document.querySelector(`[data-bulk="${a}"]`);
   btn("read").disabled = s.unread === 0;
   btn("unsubscribe").disabled = false;  // bundles without an unsubscribe option get a Trash/Spam choice
   btn("unsubscribe").textContent = s.unsubscribable.length && s.unsubscribable.length < n ? `Unsubscribe (${s.unsubscribable.length})` : "Unsubscribe";
-  btn("block").hidden = !BLOCKABLE.has(state.view);
+  btn("block").hidden = !BLOCKABLE.has(selView());
 }
 function setBulkBusy(busy, label) {
   document.querySelectorAll("#bulkbar button").forEach((b) => b.disabled = busy);
@@ -1619,7 +1671,7 @@ async function bulk(action) {
   if (!(await ask({ title, body: text + "\n\n" + names, confirm: label, danger }))) return;
   setBulkBusy(true, action === "block" ? "Creating filters…" : "Working…");
   try {
-    const res = await api("/api/bulk", { view: state.view, scope: state.scope, keys: s.keys, action });
+    const res = await api("/api/bulk", { view: selView(), scope: state.scope, keys: s.keys, action });
     if (action === "block") {
       const ok = res.results.filter((r) => r.ok), bad = res.results.filter((r) => !r.ok);
       toast(`${ok.length} filters created · ${fmtNum(ok.reduce((a, r) => a + r.count, 0))} messages archived` + (bad.length ? ` · ${bad.length} failed` : ""));
@@ -1650,11 +1702,12 @@ function fateChooser(rows, pages = {}) {
 }
 
 async function bulkUnsubscribe(s) {
+  const bulkView = selView();  // remembered for the "Trash their messages" follow-up
   const eligible = s.unsubscribable, others = s.rows.filter((r) => !r.unsub_auto);
   let pages = {};
   const pageOnly = others.filter((r) => r.unsub_page);
   if (pageOnly.length) {
-    try { pages = (await api("/api/unsubscribe-pages", { view: state.view, scope: state.scope, keys: pageOnly.map((r) => r.key) })).pages; }
+    try { pages = (await api("/api/unsubscribe-pages", { view: selView(), scope: state.scope, keys: pageOnly.map((r) => r.key) })).pages; }
     catch { /* the list still works without the links */ }
   }
   const chooser = others.length ? fateChooser(others, pages) : null;
@@ -1678,12 +1731,12 @@ async function bulkUnsubscribe(s) {
   try {
     if (eligible.length) {
       setBulkBusy(true, `Unsubscribing from ${plural(eligible.length, "sender", "senders")}…`);
-      res = await api("/api/bulk", { view: state.view, scope: state.scope, keys: eligible.map((r) => r.key), action: "unsubscribe" });
+      res = await api("/api/bulk", { view: selView(), scope: state.scope, keys: eligible.map((r) => r.key), action: "unsubscribe" });
     }
     for (const [action, rows, label] of [["trash", toTrash, "Moving to Trash…"], ["spam", toSpam, "Reporting spam…"]]) {
       if (!rows.length) continue;
       setBulkBusy(true, label);
-      fate[action] = (await api("/api/bulk", { view: state.view, scope: state.scope, keys: rows.map((r) => r.key), action })).count;
+      fate[action] = (await api("/api/bulk", { view: selView(), scope: state.scope, keys: rows.map((r) => r.key), action })).count;
     }
   } catch (e) { failed = e.message; }
   setBulkBusy(false);
@@ -1728,7 +1781,7 @@ async function bulkUnsubscribe(s) {
         state.selected = new Map(eligible.map((r) => [r.key, r]));
         setBulkBusy(true, "Moving to Trash…");
         try {
-          const t = await api("/api/bulk", { view: state.view, scope: state.scope, keys: eligible.map((r) => r.key), action: "trash" });
+          const t = await api("/api/bulk", { view: bulkView, scope: state.scope, keys: eligible.map((r) => r.key), action: "trash" });
           toast(`Moved ${fmtNum(t.count)} messages to Trash`);
         } catch (e) { toast(e.message); }
         state.selected.clear(); setBulkBusy(false);
