@@ -2,7 +2,8 @@
 
 emliq (email IQ) helps you clean up a crowded Gmail inbox by working with **bundles**: all the
 mail from one sender, domain, mailing list, subject, year or size, handled in one click. It runs
-on your computer, and nothing is permanently deleted.
+on your computer, and nothing is permanently deleted. emliq is a free app from
+[App Enablement](https://appenablement.com).
 
 ## Getting started
 

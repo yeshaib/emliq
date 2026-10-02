@@ -25,6 +25,7 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://github.com/yeshaib/emliq"
+"App Enablement" = "https://appenablement.com"
 Issues = "https://github.com/yeshaib/emliq/issues"
 Changelog = "https://github.com/yeshaib/emliq/blob/main/emliq/CHANGELOG.md"
 

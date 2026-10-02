@@ -9,6 +9,8 @@
   with optional AI that runs on your own computer.
 </p>
 
+<p align="center">A free app from <a href="https://appenablement.com"><b>App Enablement</b></a></p>
+
 <p align="center">
   <a href="LICENSE"><img alt="License: Apache 2.0" src="https://img.shields.io/badge/license-Apache%202.0-blue"></a>
   <a href="https://github.com/yeshaib/emliq/actions/workflows/ci.yml"><img alt="Tests" src="https://github.com/yeshaib/emliq/actions/workflows/ci.yml/badge.svg"></a>
@@ -239,7 +241,8 @@ The code is small and dependency-light: a Flask server (`emliq/web.py`), a singl
 
 ## License
 
-emliq is free and open source under the [Apache License 2.0](LICENSE). You may use, modify and
+emliq is a free app from [App Enablement](https://appenablement.com), open source under the
+[Apache License 2.0](LICENSE). You may use, modify and
 share it, including commercially, under the license's terms; see [NOTICE](NOTICE).
 
 emliq is an independent project and is not affiliated with Google, Anthropic, Ollama or any

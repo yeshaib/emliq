@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.9.2 — 2026-10-02
+- Credits App Enablement (appenablement.com), which offers emliq for free, in the app, README and guide
+
 ## 0.9.1 — 2026-10-02
 - Bulk Unsubscribe now also lists senders that only offer an unsubscribe web page, or whose unsubscribe link is broken, in the Trash / Spam / Leave choice (with an Unsubscribe page link where there is one)
 - The Unsubscribe button's count only includes senders emliq can unsubscribe from automatically
